@@ -37,6 +37,7 @@ void Display::initTFT()
   tft->begin();
   tft->setRotation(1);
   tft->fillScreen(TFT_BLACK);
+  tft->setBrightness(240);
   this->initLVGL();
 }
 
@@ -68,6 +69,7 @@ void Display::my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
   }
 }
 
+bool isSetBrightnessRunning = false;
 void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
   static int16_t last_x;
@@ -113,7 +115,22 @@ void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
         }
         break;
       case 4:
-        left_button_down = true;
+
+        if (tft->getBrightness() == 0 && !isSetBrightnessRunning)
+        {
+          isSetBrightnessRunning = true;
+          for (int i = 0; i < 255; ++i)
+          {
+            tft->setBrightness(i);
+            lv_task_handler();
+            delay(5);
+          }
+          isSetBrightnessRunning = false;
+        }
+        else
+        {
+          left_button_down = true;
+        }
         break;
       default:
         break;
@@ -130,11 +147,12 @@ void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 uint32_t Display::keypad_get_key(void)
 {
   char key_ch = 0;
-  Wire.requestFrom(0x55, 1);
+  Wire.requestFrom(0x55, 2);
   while (Wire.available() > 0)
   {
     key_ch = Wire.read();
   }
+
   return key_ch;
 }
 
@@ -146,14 +164,38 @@ void Display::my_key_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
   act_key = keypad_get_key();
   if (act_key != 0)
   {
+    Serial.println(data->key);
+    Serial.println(data->continue_reading);
+
     data->state = LV_INDEV_STATE_PR;
     last_key = act_key;
+    Serial.printf("Key: %d\n", last_key);
+    HandleKeyboardShortcuts(last_key);
   }
   else
   {
     data->state = LV_INDEV_STATE_REL;
   }
   data->key = last_key;
+}
+
+void Display::HandleKeyboardShortcuts(uint32_t key)
+{
+  if (key == 224) // sym+shift+space/shift+mic turn off display
+  {
+    for (int i = tft->getBrightness(); i >= 0; --i)
+    {
+      tft->setBrightness(i);
+      lv_task_handler();
+      delay(5);
+    }
+  }
+  if (key == 4) // shift + speaker  toggle sound
+  {
+    int sliderValue = lv_slider_get_value(ui_SliderSpeaker);
+    int volume = sliderValue > 0 ? 0 : 21;
+    menu_event_cb(SET_AUDIO, reinterpret_cast<void *>(volume));
+  }
 }
 
 void Display::ui_event_callback(lv_event_t *e)
@@ -174,11 +216,13 @@ void Display::ui_event_callback(lv_event_t *e)
   else if (target == ui_SliderBrightness && event_code == LV_EVENT_VALUE_CHANGED)
   {
     int sliderValue = lv_slider_get_value(ui_SliderBrightness);
+    Serial.printf("setBrightness: %d\n", sliderValue);
     tft->setBrightness(sliderValue);
   }
   else if (target == ui_SliderSpeaker && event_code == LV_EVENT_VALUE_CHANGED)
   {
     int sliderValue = lv_slider_get_value(ui_SliderSpeaker);
+    menu_event_cb(SET_AUDIO, reinterpret_cast<void *>(sliderValue));
   }
   else if (target == ui_ImgBtnWiFi && event_code == LV_EVENT_CLICKED)
   {
@@ -876,6 +920,10 @@ void Display::show_loading_popup(bool isOn)
   }
 }
 
+void Display::update_volume_slider(int32_t volume)
+{
+  lv_slider_set_value(ui_SliderSpeaker, volume, LV_ANIM_OFF);
+}
 void Display::update_time(void *timeStruct)
 {
   lv_port_sem_take();

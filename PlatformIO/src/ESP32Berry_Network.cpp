@@ -9,7 +9,7 @@
 #include <Preferences.h>
 
 static Network *instance = NULL;
-Preferences preferences;
+extern Preferences preferences;
 
 extern "C" void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {

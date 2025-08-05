@@ -12,15 +12,18 @@
 #include "LGFX_T-Deck.h"
 #include "ESP32Berry_Config.hpp"
 
-typedef enum {
+typedef enum
+{
   WIFI_OFF,
   WIFI_ON,
-  APP
+  APP,
+  SET_AUDIO
 } Menu_Event_t;
 
 LV_IMG_DECLARE(mouse_cursor_icon);
 
-class Display {
+class Display
+{
 private:
   TaskHandle_t lvgl_task_handle;
   SemaphoreHandle_t bin_sem;
@@ -59,11 +62,12 @@ private:
   void initLVGL();
   void ui_main();
   void ui_second();
-  void ui_prep_loading(); 
+  void ui_prep_loading();
   void ui_prep_popup_box();
   void ui_popup_open(String title, String msg);
   void ui_WiFi_page();
-  
+  void HandleKeyboardShortcuts(uint32_t key);
+
   String add_battery_icon(int percentage);
   typedef void (*FuncPtrInt)(Menu_Event_t, void *);
 
@@ -86,6 +90,7 @@ public:
   void set_focused_obj(lv_obj_t *obj);
   void update_ui_network(void *data1, void *data2);
   void show_loading_popup(bool isOn);
+  void update_volume_slider(int32_t volume);
   void update_time(void *timeStruct);
   void set_notification(const char *msg);
   void update_WiFi_label(void *data1);

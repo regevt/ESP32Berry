@@ -25,7 +25,6 @@ void taskPlayAudio(void *pvParameters)
   if (SD.exists((char *)pvParameters))
   {
     instance->audio->setPinout(BOARD_I2S_BCK, BOARD_I2S_WS, BOARD_I2S_DOUT);
-    instance->audio->setVolume(21);
     instance->audio->connecttoFS(SD, (char *)pvParameters);
     while (instance->audio->isRunning())
     {
@@ -52,7 +51,6 @@ void System::init()
   initADCBAT();
   audio = new Audio();
   isSDCard = initSDCard();
-  play_audio(AUDIO_BOOT);
 }
 
 void System::initADCBAT()
