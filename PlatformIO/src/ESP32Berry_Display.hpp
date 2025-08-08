@@ -30,6 +30,11 @@ private:
   friend void update_ui_task(void *pvParameters);
   LGFX *tft;
 
+  bool cursor_panel_active = false; // Only initialized once!
+
+  lv_indev_drv_t indev_mouse;
+  lv_obj_t *cursor_obj;
+
   lv_obj_t *ui_Main_Screen;
   lv_obj_t *ui_TopPanel;
   lv_obj_t *ui_ControlPanel;
@@ -37,6 +42,9 @@ private:
   lv_obj_t *ui_SliderBrightness;
   lv_obj_t *ui_ImgBtnWiFi;
   lv_obj_t *ui_BtnWiFi;
+
+  lv_obj_t *ui_ImgBtnCursor;
+  lv_obj_t *ui_PanelCursor;
   lv_obj_t *ui_WiFiPanel;
   lv_obj_t *ui_WiFiPanelCloseBtn;
   lv_obj_t *ui_WiFiLabel;

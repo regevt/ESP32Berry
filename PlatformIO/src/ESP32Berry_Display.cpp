@@ -10,6 +10,7 @@
 #include "secrets.h"
 
 static Display *instance = NULL;
+extern "C" void my_mouse_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
 
 Display::Display(FuncPtrInt callback)
 {
@@ -72,6 +73,9 @@ void Display::my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 bool isSetBrightnessRunning = false;
 void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
+  if (cursor_panel_active == false)
+    return;
+
   static int16_t last_x;
   static int16_t last_y;
   bool left_button_down = false;
@@ -123,7 +127,7 @@ void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
           {
             tft->setBrightness(i);
             lv_task_handler();
-            delay(5);
+            delay(1);
           }
           isSetBrightnessRunning = false;
         }
@@ -216,7 +220,6 @@ void Display::ui_event_callback(lv_event_t *e)
   else if (target == ui_SliderBrightness && event_code == LV_EVENT_VALUE_CHANGED)
   {
     int sliderValue = lv_slider_get_value(ui_SliderBrightness);
-    Serial.printf("setBrightness: %d\n", sliderValue);
     tft->setBrightness(sliderValue);
   }
   else if (target == ui_SliderSpeaker && event_code == LV_EVENT_VALUE_CHANGED)
@@ -240,6 +243,23 @@ void Display::ui_event_callback(lv_event_t *e)
   {
     lv_obj_clear_flag(ui_WiFiPanel, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ui_ControlPanel, LV_OBJ_FLAG_HIDDEN);
+  }
+  else if ((target == ui_ImgBtnCursor && event_code == LV_EVENT_CLICKED) || (target == ui_PanelCursor && event_code == LV_EVENT_CLICKED))
+  {
+    // Toggles each time
+    cursor_panel_active = !cursor_panel_active;
+    if (cursor_panel_active)
+    {
+      lv_obj_set_style_bg_color(ui_PanelCursor, lv_color_hex(0x33bd33), LV_PART_MAIN | LV_STATE_DEFAULT); // #33bd33ff
+      lv_obj_set_style_bg_color(ui_ImgBtnCursor, lv_color_hex(0x33bd33), LV_PART_MAIN | LV_STATE_DEFAULT);
+      lv_obj_clear_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+    }
+    else
+    {
+      lv_obj_set_style_bg_color(ui_PanelCursor, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+      lv_obj_set_style_bg_color(ui_ImgBtnCursor, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+      lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
+    }
   }
 }
 
@@ -415,13 +435,15 @@ void Display::initLVGL()
   static lv_indev_drv_t indev_mouse;
   lv_indev_drv_init(&indev_mouse);
   indev_mouse.type = LV_INDEV_TYPE_POINTER;
+  // Wire the trackball read callback so LVGL can receive cursor movement
   indev_mouse.read_cb = my_mouse_read_thunk;
   lv_indev_t *mouse_indev = lv_indev_drv_register(&indev_mouse);
   lv_indev_set_group(mouse_indev, lv_group_get_default());
 
-  lv_obj_t *cursor_obj = lv_img_create(lv_scr_act()); /*Create an image object for the cursor */
-  lv_img_set_src(cursor_obj, &mouse_cursor_icon);     /*Set the image source*/
-  lv_indev_set_cursor(mouse_indev, cursor_obj);       /*Connect the image  object to the driver*/
+  cursor_obj = lv_img_create(lv_scr_act());
+  lv_img_set_src(cursor_obj, &mouse_cursor_icon);
+  lv_indev_set_cursor(mouse_indev, cursor_obj);
+  lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
 
   /*Register a keypad input device*/
   static lv_indev_drv_t indev_keypad;
@@ -727,6 +749,29 @@ void Display::ui_main()
   lv_obj_set_style_bg_opa(ui_ImgBtnWiFi, 255, LV_PART_MAIN | LV_STATE_CHECKED);
   lv_obj_add_event_cb(ui_ImgBtnWiFi, ui_event_callback_thunk, LV_EVENT_CLICKED, NULL);
   lv_obj_add_event_cb(ui_TopPanel, ui_event_callback_thunk, LV_EVENT_CLICKED, NULL);
+
+  ui_PanelCursor = lv_obj_create(ui_ControlPanel);
+  lv_obj_set_width(ui_PanelCursor, 30);
+  lv_obj_set_height(ui_PanelCursor, 30);
+  lv_obj_set_align(ui_PanelCursor, LV_ALIGN_BOTTOM_RIGHT);
+  lv_obj_clear_flag(ui_PanelCursor, LV_OBJ_FLAG_SCROLLABLE);
+  // lv_obj_set_style_bg_color(ui_PanelCursor, lv_color_hex(0xE95622), LV_PART_MAIN | LV_STATE_DEFAULT); // #E95622
+
+  ui_ImgBtnCursor = lv_imgbtn_create(ui_PanelCursor);
+  lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_RELEASED, NULL, &mouse_cursor_icon, NULL);
+  lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_PRESSED, NULL, &mouse_cursor_icon, NULL);
+  lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_DISABLED, NULL, &mouse_cursor_icon, NULL);
+  lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_CHECKED_PRESSED, NULL, &mouse_cursor_icon, NULL);
+  lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_CHECKED_RELEASED, NULL, &mouse_cursor_icon, NULL);
+  lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_CHECKED_DISABLED, NULL, &mouse_cursor_icon, NULL);
+  lv_obj_set_width(ui_ImgBtnCursor, 14);
+  lv_obj_set_height(ui_ImgBtnCursor, 20);
+  lv_obj_clear_flag(ui_ImgBtnCursor, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_align(ui_ImgBtnCursor, LV_ALIGN_CENTER);
+  lv_obj_add_flag(ui_ImgBtnCursor, LV_OBJ_FLAG_CHECKABLE);
+  lv_obj_set_style_radius(ui_ImgBtnCursor, 8, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(ui_ImgBtnCursor, 255, LV_PART_MAIN | LV_STATE_CHECKED);
+  lv_obj_add_event_cb(ui_ImgBtnCursor, ui_event_callback_thunk, LV_EVENT_CLICKED, NULL);
 
   ui_WiFi_page();
   lv_disp_load_scr(ui_Main_Screen);
