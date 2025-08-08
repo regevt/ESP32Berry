@@ -7,6 +7,7 @@
 /////////////////////////////////////////////////////////////////
 #include "ESP32Berry_System.hpp"
 #include "secrets.h"
+#include "BusLock.hpp"
 
 static System *instance = NULL;
 
@@ -25,10 +26,22 @@ void taskPlayAudio(void *pvParameters)
   if (SD.exists((char *)pvParameters))
   {
     instance->audio->setPinout(BOARD_I2S_BCK, BOARD_I2S_WS, BOARD_I2S_DOUT);
+    spi_bus_lock();
     instance->audio->connecttoFS(SD, (char *)pvParameters);
+    spi_bus_unlock();
     while (instance->audio->isRunning())
     {
-      instance->audio->loop();
+      // Audio.loop() will read from SD internally; protect those brief reads
+      if (spi_bus_try_lock(pdMS_TO_TICKS(20)))
+      {
+        instance->audio->loop();
+        spi_bus_unlock();
+      }
+      else
+      {
+        // If we couldn't get the lock quickly, yield and retry to keep UI smooth
+        vTaskDelay(1);
+      }
     }
     instance->audio->stopSong();
   }
@@ -114,12 +127,17 @@ void System::update_local_time()
 bool System::initSDCard()
 {
   digitalWrite(BOARD_SDCARD_CS, HIGH);
-  if (!SD.begin(BOARD_SDCARD_CS, SPI, 800000U))
+  spi_bus_lock();
+  bool ok = SD.begin(BOARD_SDCARD_CS, SPI, 800000U);
+  spi_bus_unlock();
+  if (!ok)
   {
     return false;
   }
 
+  spi_bus_lock();
   uint8_t cardType = SD.cardType();
+  spi_bus_unlock();
   if (cardType == CARD_NONE)
   {
     return false;

@@ -8,6 +8,7 @@
 #include "ESP32Berry_Display.hpp"
 #include <Arduino.h>
 #include "secrets.h"
+#include "BusLock.hpp"
 
 static Display *instance = NULL;
 extern "C" void my_mouse_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
@@ -15,6 +16,7 @@ extern "C" void my_mouse_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_
 Display::Display(FuncPtrInt callback)
 {
   instance = this;
+  spi_bus_init();
   tft = new LGFX();
   menu_event_cb = callback;
   ui_Focused_Obj = NULL;
@@ -47,10 +49,16 @@ void Display::my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
 
+  // Try to acquire the SPI bus briefly; if busy (e.g., SD), wait a bit to avoid corruption
+  if (!spi_bus_try_lock(pdMS_TO_TICKS(50)))
+  {
+    spi_bus_lock();
+  }
   tft->startWrite();
   tft->setAddrWindow(area->x1, area->y1, w, h);
   tft->writePixels((lgfx::rgb565_t *)&color_p->full, w * h);
   tft->endWrite();
+  spi_bus_unlock();
 
   lv_disp_flush_ready(disp);
 }
@@ -58,7 +66,17 @@ void Display::my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color
 void Display::my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
 {
   uint16_t x, y;
-  if (tft->getTouch(&x, &y))
+  bool touched = false;
+  if (spi_bus_try_lock(pdMS_TO_TICKS(10)))
+  {
+    touched = tft->getTouch(&x, &y);
+    spi_bus_unlock();
+  }
+  else
+  {
+    touched = tft->getTouch(&x, &y);
+  }
+  if (touched)
   {
     data->state = LV_INDEV_STATE_PR;
     data->point.x = x;

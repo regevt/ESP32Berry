@@ -7,11 +7,13 @@
 /////////////////////////////////////////////////////////////////
 #include <Arduino.h>
 #include "ESP32Berry.hpp"
+#include "BusLock.hpp"
 
 ESP32Berry *_ESP32Berry;
 
 void initBoard()
 {
+  spi_bus_init();
   pinMode(BOARD_POWERON, OUTPUT);
   digitalWrite(BOARD_POWERON, HIGH);
 
@@ -24,7 +26,9 @@ void initBoard()
   digitalWrite(BOARD_TFT_CS, HIGH);
 
   pinMode(BOARD_SPI_MISO, INPUT_PULLUP);
+  spi_bus_lock();
   SPI.begin(BOARD_SPI_SCK, BOARD_SPI_MISO, BOARD_SPI_MOSI);
+  spi_bus_unlock();
 }
 
 void setup()
