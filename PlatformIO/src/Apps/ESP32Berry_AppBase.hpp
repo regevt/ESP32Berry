@@ -8,22 +8,24 @@
 #pragma once
 #include <lvgl.h>
 #include <vector>
-#include "ESP32Berry_Config.hpp"
-#include "ESP32Berry_Display.hpp"
+#include "Configurations/ESP32Berry_Config.hpp"
+#include "UI/ESP32Berry_Display.hpp"
 #include "ESP32Berry_Network.hpp"
 #include "ESP32Berry_System.hpp"
 
-class AppBase {
+class AppBase
+{
 private:
   void ui_app(const char *title);
   void ui_loading();
+
 protected:
   lv_obj_t *_bodyScreen;
   lv_obj_t *ui_AppPanel;
   lv_obj_t *ui_AppTitle;
   lv_obj_t *ui_AppCloseBtn;
   lv_obj_t *ui_Loading;
-  
+
 public:
   AppBase(Display *display, System *system, Network *network, const char *title);
   ~AppBase();
@@ -33,5 +35,5 @@ public:
 
   void base_event_handler(lv_event_t *e);
   void show_loading_popup(bool isOn);
-  virtual void close_app(){};
+  virtual void close_app() {};
 };

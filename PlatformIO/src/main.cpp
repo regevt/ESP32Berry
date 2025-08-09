@@ -7,7 +7,7 @@
 /////////////////////////////////////////////////////////////////
 #include <Arduino.h>
 #include "ESP32Berry.hpp"
-#include "BusLock.hpp"
+#include "Utils/BusLock.hpp"
 
 ESP32Berry *_ESP32Berry;
 

@@ -6,8 +6,8 @@
 */
 /////////////////////////////////////////////////////////////////
 #include "ESP32Berry_System.hpp"
-#include "secrets.h"
-#include "BusLock.hpp"
+#include "Configurations/secrets.h"
+#include "Utils/BusLock.hpp"
 
 static System *instance = NULL;
 

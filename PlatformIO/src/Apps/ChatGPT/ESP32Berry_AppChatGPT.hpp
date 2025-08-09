@@ -6,7 +6,7 @@
 */
 /////////////////////////////////////////////////////////////////
 #pragma once
-#include "ESP32Berry_Config.hpp"
+#include "Configurations/ESP32Berry_Config.hpp"
 #include "Apps/ESP32Berry_AppBase.hpp"
 #include <ArduinoJson.h>
 #include <ChatGPT.hpp>

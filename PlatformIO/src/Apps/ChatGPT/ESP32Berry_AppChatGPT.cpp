@@ -6,7 +6,7 @@
 */
 /////////////////////////////////////////////////////////////////
 #include "Apps/ChatGPT/ESP32Berry_AppChatGPT.hpp"
-#include <secrets.h>
+#include <Configurations/secrets.h>
 
 static AppChatGPT *instance = NULL;
 

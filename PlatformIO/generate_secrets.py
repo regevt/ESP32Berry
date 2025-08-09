@@ -6,6 +6,6 @@ with open(".env") as f:
             k, v = line.strip().split("=", 1)
             env[k] = v
 
-with open("src/secrets.h", "w") as f:
+with open("src/Configurations/secrets.h", "w") as f:
     for k, v in env.items():
         f.write(f'#define {k} "{v}"\n')

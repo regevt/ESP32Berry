@@ -7,7 +7,7 @@
 /////////////////////////////////////////////////////////////////
 #pragma once
 #include <vector>
-#include "ESP32Berry_Config.hpp"
+#include "Configurations/ESP32Berry_Config.hpp"
 #include <Audio.h>
 #include "esp32-hal.h"
 #include "lwip/apps/sntp.h"
@@ -16,22 +16,25 @@
 #include "SD.h"
 #include "SPI.h"
 
-typedef enum {
+typedef enum
+{
   SYS_TIME,
   SYS_BATTERY,
 } System_Event_t;
 
-class System {
+class System
+{
 private:
   bool requestedTimeUpdate;
 
-  typedef void (*FuncPtrString)(System_Event_t, void*);
+  typedef void (*FuncPtrString)(System_Event_t, void *);
   fs::FS &storage = SD;
 
   int vRef;
   void init();
   bool initSDCard();
   void initADCBAT();
+
 public:
   TaskHandle_t audioTaskHandler;
   FuncPtrString system_event_cb;
@@ -39,13 +42,13 @@ public:
   System(FuncPtrString callback);
   ~System();
 
-  Audio* audio;
+  Audio *audio;
   bool isSDCard;
   void setConfigTzTime();
   void update_local_time();
   void read_battery();
-  void play_audio(const char* filename);
-  
+  void play_audio(const char *filename);
+
   std::vector<String> listDir(const char *dirname);
   bool createDir(const char *path);
   bool writeFile(const char *path, const char *message);

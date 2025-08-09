@@ -7,10 +7,10 @@
 /////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "ESP32Berry_Config.hpp"
+#include "Configurations/ESP32Berry_Config.hpp"
 
 #include <vector>
-#include "ESP32Berry_Display.hpp"
+#include "UI/ESP32Berry_Display.hpp"
 #include "ESP32Berry_Network.hpp"
 #include "ESP32Berry_System.hpp"
 #include "Apps/ChatGPT/ESP32Berry_AppChatGPT.hpp"

@@ -8,7 +8,7 @@
 #pragma once
 #include <vector>
 #include <WiFiClientSecure.h>
-#include "ESP32Berry_Config.hpp"
+#include "Configurations/ESP32Berry_Config.hpp"
 typedef enum
 {
   NETWORK_DISCONNECTED,

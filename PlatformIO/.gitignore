@@ -4,6 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 .env
-src/secrets.h
+src/Configurations/secrets.h
 .ds_store
 **/*/.pio
