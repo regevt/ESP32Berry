@@ -37,6 +37,9 @@ void displayEventHandler(Menu_Event_t event, void *param)
     case 2:
       instance->appFileBrowser = new AppFileBrowser(instance->display, instance->system, instance->network, "File Browser");
       break;
+    case 1:
+      instance->appGPS = new AppGPS(instance->display, instance->system, instance->network, "GPS Client");
+      break;
     }
 
     break;
