@@ -6,7 +6,8 @@
 */
 /////////////////////////////////////////////////////////////////
 #pragma once
-#include <lvgl.h>
+// #include <lvgl.h>
+#include "lvgl.h"
 #include <Wire.h>
 #include <vector>
 #include "Configurations/LGFX_T-Deck.h"
@@ -35,7 +36,7 @@ private:
 
     bool cursor_panel_active = false; // Only initialized once!
 
-    lv_indev_drv_t indev_mouse;
+    lv_indev_t *indev_mouse = nullptr;
     lv_obj_t *cursor_obj;
 
     lv_obj_t *ui_SliderSpeaker;
@@ -106,10 +107,10 @@ public:
     ~Display();
     void initTFT();
     void ui_WiFi_page();
-    void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p);
-    void my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
-    void my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
-    void my_key_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
+    void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+    void my_touch_read(lv_indev_t *indev_driver, lv_indev_data_t *data);
+    void my_mouse_read(lv_indev_t *indev_driver, lv_indev_data_t *data);
+    void my_key_read(lv_indev_t *indev_driver, lv_indev_data_t *data);
     void ui_wifi_event_callback(lv_event_t *e);
     void textarea_event_cb(lv_event_t *e);
     void ui_event_callback(lv_event_t *e);

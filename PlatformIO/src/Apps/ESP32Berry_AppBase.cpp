@@ -28,7 +28,7 @@ extern "C" void base_event_handler_thunk(lv_event_t *e)
 void AppBase::base_event_handler(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
-  lv_obj_t *btn = lv_event_get_target(e);
+  lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
 
   if (code == LV_EVENT_CLICKED)
   {
@@ -82,7 +82,8 @@ void AppBase::ui_loading()
   ui_Loading = lv_obj_create(_bodyScreen);
 
   lv_obj_set_size(ui_Loading, 120, 140);
-  lv_obj_t *loading_spinner = lv_spinner_create(ui_Loading, 1000, 60);
+  lv_obj_t *loading_spinner = lv_spinner_create(ui_Loading);
+  lv_spinner_set_anim_params(loading_spinner, 1000, 60);
   lv_obj_set_size(loading_spinner, 80, 80);
   lv_obj_align(loading_spinner, LV_ALIGN_TOP_MID, 0, 0);
 

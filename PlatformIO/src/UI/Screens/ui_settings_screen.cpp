@@ -174,7 +174,6 @@ void Display::ui_settings()
   lv_obj_set_height(ui_PanelCursor, 30);
   lv_obj_set_align(ui_PanelCursor, LV_ALIGN_BOTTOM_RIGHT);
   lv_obj_clear_flag(ui_PanelCursor, LV_OBJ_FLAG_SCROLLABLE);
-  // lv_obj_set_style_bg_color(ui_PanelCursor, lv_color_hex(0xE95622), LV_PART_MAIN | LV_STATE_DEFAULT); // #E95622
 
   ui_ImgBtnCursor = lv_imgbtn_create(ui_PanelCursor);
   lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_RELEASED, NULL, &mouse_cursor_icon, NULL);
@@ -183,8 +182,8 @@ void Display::ui_settings()
   lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_CHECKED_PRESSED, NULL, &mouse_cursor_icon, NULL);
   lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_CHECKED_RELEASED, NULL, &mouse_cursor_icon, NULL);
   lv_imgbtn_set_src(ui_ImgBtnCursor, LV_IMGBTN_STATE_CHECKED_DISABLED, NULL, &mouse_cursor_icon, NULL);
-  lv_obj_set_width(ui_ImgBtnCursor, 14);
-  lv_obj_set_height(ui_ImgBtnCursor, 20);
+  lv_obj_set_width(ui_ImgBtnCursor, mouse_cursor_icon.header.w);
+  lv_obj_set_height(ui_ImgBtnCursor, mouse_cursor_icon.header.h);
   lv_obj_clear_flag(ui_ImgBtnCursor, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_align(ui_ImgBtnCursor, LV_ALIGN_CENTER);
   lv_obj_add_flag(ui_ImgBtnCursor, LV_OBJ_FLAG_CHECKABLE);

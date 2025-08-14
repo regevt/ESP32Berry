@@ -7,10 +7,11 @@
 #include <Arduino.h>
 #include "../Configurations/secrets.h"
 #include "../Utils/BusLock.hpp"
+#include <lvgl.h> // Ensure this is the correct path for your LVGL installation
 
 Display *g_display_instance = NULL;
 static Display *instance = NULL;
-extern "C" void my_mouse_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_t *data);
+extern "C" void my_mouse_read_thunk(lv_indev_t *indev_driver, lv_indev_data_t *data);
 extern "C" void wifi_event_cb_thunk(lv_event_t *e)
 {
     instance->ui_wifi_event_callback(e);
@@ -61,12 +62,12 @@ void Display::initTFT()
     this->initLVGL();
 }
 
-extern "C" void my_disp_flush_thunk(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p)
+extern "C" void my_disp_flush_thunk(lv_display_t *drv, const lv_area_t *area, uint8_t *px_map)
 {
-    instance->my_disp_flush(drv, area, color_p);
+    instance->my_disp_flush(drv, area, px_map);
 }
 
-void Display::my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
+void Display::my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
     uint32_t w = (area->x2 - area->x1 + 1);
     uint32_t h = (area->y2 - area->y1 + 1);
@@ -78,14 +79,14 @@ void Display::my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color
     }
     tft->startWrite();
     tft->setAddrWindow(area->x1, area->y1, w, h);
-    tft->writePixels((lgfx::rgb565_t *)&color_p->full, w * h);
+    tft->writePixels((uint16_t *)px_map, w * h);
     tft->endWrite();
     spi_bus_unlock();
 
-    lv_disp_flush_ready(disp);
+    lv_display_flush_ready(disp);
 }
 
-void Display::my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
+void Display::my_touch_read(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
     uint16_t x, y;
     bool touched = false;
@@ -100,25 +101,31 @@ void Display::my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     }
     if (touched)
     {
-        data->state = LV_INDEV_STATE_PR;
+        data->state = LV_INDEV_STATE_PRESSED;
         data->point.x = x;
         data->point.y = y;
         register_activity();
     }
     else
     {
-        data->state = LV_INDEV_STATE_REL;
+        data->state = LV_INDEV_STATE_RELEASED;
     }
 }
 
 bool isSetBrightnessRunning = false;
-void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
+void Display::my_mouse_read(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
-    if (cursor_panel_active == false)
-        return;
-
     static int16_t last_x;
     static int16_t last_y;
+    if (cursor_panel_active == false)
+    {
+        // Keep last position, report released state when cursor panel is inactive
+        data->point.x = last_x;
+        data->point.y = last_y;
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
+    }
+
     bool left_button_down = false;
     const uint8_t dir_pins[5] = {BOARD_TBOX_G02,
                                  BOARD_TBOX_G01,
@@ -137,7 +144,7 @@ void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
             switch (i)
             {
             case 0:
-                if (last_x < (lv_disp_get_hor_res(NULL) - mouse_cursor_icon.header.w))
+                if (last_x < (TFT_WIDTH - mouse_cursor_icon.header.w))
                 {
                     last_x += pos;
                 }
@@ -155,7 +162,7 @@ void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
                 }
                 break;
             case 3:
-                if (last_y < (lv_disp_get_ver_res(NULL) - mouse_cursor_icon.header.h))
+                if (last_y < (TFT_HEIGHT - mouse_cursor_icon.header.h))
                 {
                     last_y += pos;
                 }
@@ -168,7 +175,7 @@ void Display::my_mouse_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
                     for (int i = 0; i < 255; ++i)
                     {
                         tft->setBrightness(i);
-                        lv_task_handler();
+                        lv_timer_handler();
                         delay(1);
                     }
                     isSetBrightnessRunning = false;
@@ -203,7 +210,7 @@ uint32_t Display::keypad_get_key(void)
 }
 
 /*Will be called by the library to read the mouse*/
-void Display::my_key_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+void Display::my_key_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
 {
     static uint32_t last_key = 0;
     uint32_t act_key;
@@ -213,15 +220,14 @@ void Display::my_key_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
         Serial.println(data->key);
         Serial.println(data->continue_reading);
 
-        data->state = LV_INDEV_STATE_PR;
+        data->state = LV_INDEV_STATE_PRESSED;
         last_key = act_key;
-        Serial.printf("Key: %d\n", last_key);
         HandleKeyboardShortcuts(last_key);
         register_activity();
     }
     else
     {
-        data->state = LV_INDEV_STATE_REL;
+        data->state = LV_INDEV_STATE_RELEASED;
     }
     data->key = last_key;
 }
@@ -233,7 +239,7 @@ void Display::HandleKeyboardShortcuts(uint32_t key)
         for (int i = tft->getBrightness(); i >= 0; --i)
         {
             tft->setBrightness(i);
-            lv_task_handler();
+            lv_timer_handler();
             delay(5);
         }
         screen_dimmed = true;
@@ -246,17 +252,17 @@ void Display::HandleKeyboardShortcuts(uint32_t key)
     }
 }
 
-extern "C" void my_touch_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
+extern "C" void my_touch_read_thunk(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
     instance->my_touch_read(indev_driver, data);
 }
 
-extern "C" void my_mouse_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
+extern "C" void my_mouse_read_thunk(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
     instance->my_mouse_read(indev_driver, data);
 }
 
-extern "C" void my_key_read_thunk(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
+extern "C" void my_key_read_thunk(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
     instance->my_key_read(indev_driver, data);
 }
@@ -266,76 +272,73 @@ void update_ui_task(void *pvParameters)
     while (1)
     {
         xSemaphoreTake(instance->bin_sem, portMAX_DELAY);
-        lv_task_handler();
+        lv_timer_handler();
         xSemaphoreGive(instance->bin_sem);
-        vTaskDelay(5);
+        // vTaskDelay(5);
+        lv_tick_inc(1);
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
 void Display::initLVGL()
 {
-
-    static lv_disp_draw_buf_t draw_buf;
-
-#ifndef BOARD_HAS_PSRAM
-#define LVGL_BUFFER_SIZE (TFT_HEIGHT * 100)
-    static lv_color_t buf[LVGL_BUFFER_SIZE];
-#else
-#define LVGL_BUFFER_SIZE (TFT_WIDTH * TFT_HEIGHT * sizeof(lv_color_t))
-    static lv_color_t *buf = (lv_color_t *)ps_malloc(LVGL_BUFFER_SIZE);
-    if (!buf)
-    {
-        Serial.println("menory alloc failed!");
-        delay(5000);
-        assert(buf);
-    }
-#endif
     lv_init();
-    lv_group_set_default(lv_group_create());
-    lv_disp_draw_buf_init(&draw_buf, buf, NULL, LVGL_BUFFER_SIZE);
 
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);
-
-    disp_drv.hor_res = TFT_HEIGHT;
-    disp_drv.ver_res = TFT_WIDTH;
-    disp_drv.flush_cb = my_disp_flush_thunk;
-    disp_drv.draw_buf = &draw_buf;
-#ifdef BOARD_HAS_PSRAM
-    disp_drv.full_refresh = 1;
+    // Buffers for LVGL v9 (no lv_disp_draw_buf_t)
+#ifndef BOARD_HAS_PSRAM
+#define LVGL_BUFFER_LINES 100
+#define LVGL_BUFFER_PIXELS (TFT_WIDTH * LVGL_BUFFER_LINES) // width * lines
+    static lv_color_t buf1[LVGL_BUFFER_PIXELS];
+    const uint32_t buf_bytes = LVGL_BUFFER_PIXELS * sizeof(lv_color_t);
+#else
+#define LVGL_BUFFER_PIXELS (TFT_WIDTH * TFT_HEIGHT) // full frame
+    static lv_color_t *buf1 = (lv_color_t *)ps_malloc(LVGL_BUFFER_PIXELS * sizeof(lv_color_t));
+    if (!buf1)
+    {
+        Serial.println("memory alloc failed!");
+        delay(5000);
+        return;
+    }
+    const uint32_t buf_bytes = LVGL_BUFFER_PIXELS * sizeof(lv_color_t);
 #endif
-    lv_disp_drv_register(&disp_drv);
+    lv_group_set_default(lv_group_create());
 
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = my_touch_read_thunk;
-    lv_indev_drv_register(&indev_drv);
+    // Keep logical resolution consistent with previous driver setup (rotation applied on TFT)
+    lv_display_t *disp = lv_display_create(TFT_HEIGHT, TFT_WIDTH);
+    // Single buffer, partial render mode (safe for most SPI displays)
+    lv_display_set_buffers(disp, buf1, NULL, buf_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_flush_cb(disp, my_disp_flush_thunk);
+    lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565);
 
-    static lv_indev_drv_t indev_mouse;
-    lv_indev_drv_init(&indev_mouse);
-    indev_mouse.type = LV_INDEV_TYPE_POINTER;
-    // Wire the trackball read callback so LVGL can receive cursor movement
-    indev_mouse.read_cb = my_mouse_read_thunk;
-    lv_indev_t *mouse_indev = lv_indev_drv_register(&indev_mouse);
+    // Touch input device
+    lv_indev_t *touch_indev = lv_indev_create();
+    lv_indev_enable(touch_indev, true);
+    lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(touch_indev, my_touch_read_thunk);
+    lv_indev_set_group(touch_indev, lv_group_get_default());
+    lv_indev_set_display(touch_indev, disp);
+
+    // Trackball/mouse input device
+    lv_indev_t *mouse_indev = lv_indev_create();
+    lv_indev_set_type(mouse_indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(mouse_indev, my_mouse_read_thunk);
     lv_indev_set_group(mouse_indev, lv_group_get_default());
+    lv_indev_set_display(mouse_indev, disp);
 
-    cursor_obj = lv_img_create(lv_scr_act());
-    lv_img_set_src(cursor_obj, &mouse_cursor_icon);
+    cursor_obj = lv_image_create(lv_screen_active());
+    lv_image_set_src(cursor_obj, &mouse_cursor_icon);
     lv_indev_set_cursor(mouse_indev, cursor_obj);
-    lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
 
     /*Register a keypad input device*/
-    static lv_indev_drv_t indev_keypad;
-    lv_indev_drv_init(&indev_keypad);
-    indev_keypad.type = LV_INDEV_TYPE_KEYPAD;
-    indev_keypad.read_cb = my_key_read_thunk;
-    lv_indev_t *kb_indev = lv_indev_drv_register(&indev_keypad);
+    lv_indev_t *kb_indev = lv_indev_create();
+    lv_indev_set_type(kb_indev, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(kb_indev, my_key_read_thunk);
     lv_indev_set_group(kb_indev, lv_group_get_default());
+    lv_indev_set_display(kb_indev, disp);
 
-    lv_disp_t *dispp = lv_disp_get_default();
+    lv_display_t *dispp = lv_display_get_default();
     lv_theme_t *theme = lv_theme_default_init(dispp, lv_color_hex(0xE95622), lv_palette_main(LV_PALETTE_RED), false, &lv_font_montserrat_14);
-    lv_disp_set_theme(dispp, theme);
+    lv_display_set_theme(dispp, theme);
 
     bin_sem = xSemaphoreCreateMutex();
     ui_main();

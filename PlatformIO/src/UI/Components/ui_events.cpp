@@ -14,7 +14,7 @@ extern "C" void ui_app_btns_callback_thunk(lv_event_t *e);
 void Display::ui_event_callback(lv_event_t *e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t *target = lv_event_get_target(e);
+    lv_obj_t *target = (lv_obj_t *)lv_event_get_target(e);
     // Any UI event implies user interaction
     register_activity();
     if (target == ui_BasePopupCloseBtn && event_code == LV_EVENT_CLICKED)
@@ -92,7 +92,7 @@ void Display::ui_event_callback(lv_event_t *e)
 void Display::ui_app_btns_callback(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *btn = lv_event_get_target(e);
+    lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
     if (code == LV_EVENT_CLICKED)
     {
         set_notification("");
@@ -114,7 +114,7 @@ void Display::ui_app_btns_callback(lv_event_t *e)
 void Display::textarea_event_cb(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *obj = lv_event_get_target(e);
+    lv_obj_t *obj = (lv_obj_t *)lv_event_get_target(e);
 
     if (code == LV_EVENT_FOCUSED)
     {

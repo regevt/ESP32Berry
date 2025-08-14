@@ -11,7 +11,7 @@ extern "C" void textarea_event_cb_thunk(lv_event_t *e);
 void Display::ui_wifi_event_callback(lv_event_t *e)
 {
   lv_event_code_t code = lv_event_get_code(e);
-  lv_obj_t *btn = lv_event_get_target(e);
+  lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
   if (code == LV_EVENT_CLICKED)
   {
     if (btn == ui_WiFiPanelCloseBtn)
