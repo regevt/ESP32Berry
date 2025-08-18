@@ -9,9 +9,17 @@
 #include "Configurations/ESP32Berry_Config.hpp"
 #include "Apps/ESP32Berry_AppBase.hpp"
 #include <ArduinoJson.h>
-#include <ChatGPT.hpp>
 #include <Arduino.h>
 #include <TinyGPSPlus.h>
+
+#ifndef SerialGPS
+#define SerialGPS Serial1
+#endif
+
+#define BOARD_GPS_TX_PIN 43
+#define BOARD_GPS_RX_PIN 44
+#define BOARD_POWERON 10
+static const uint32_t GPSBaud = 9600;
 
 static TinyGPSPlus gps;
 class AppGPS : public AppBase
@@ -19,6 +27,12 @@ class AppGPS : public AppBase
 
 private:
   int display_width;
+
+  lv_obj_t *main;
+  lv_obj_t *latitude_value;
+  lv_obj_t *longitude_value;
+  lv_obj_t *satellites_value;
+  lv_obj_t *address_value;
 
 public:
   AppGPS(Display *display, System *system, Network *network, const char *title);
