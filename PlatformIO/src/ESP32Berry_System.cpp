@@ -1,10 +1,3 @@
-/////////////////////////////////////////////////////////////////
-/*
-  New ESP32Berry Project, The base UI & ChatGPT Client
-  For More Information: https://youtu.be/5K6rSw9j5iY
-  Created by Eric N. (ThatProject)
-*/
-/////////////////////////////////////////////////////////////////
 #include "ESP32Berry_System.hpp"
 #include "Configurations/secrets.h"
 #include "Utils/BusLock.hpp"
@@ -152,9 +145,9 @@ void System::play_audio(const char *filename)
   xTaskCreate(taskPlayAudio, "play", 1024 * 6, (void *)filename, 2, &audioTaskHandler);
 }
 
-std::vector<String> System::listDir(const char *dirname)
+std::vector<File> System::listDir(const char *dirname)
 {
-  std::vector<String> fileList;
+  std::vector<fs::File> fileList;
 
   File root = storage.open(dirname);
   if (!root)
@@ -171,7 +164,7 @@ std::vector<String> System::listDir(const char *dirname)
   {
     char fileInfo[128];
     snprintf(fileInfo, sizeof(fileInfo), "%s (%d bytes)", file.name(), file.size());
-    fileList.push_back(String(fileInfo));
+    fileList.push_back(file);
     file = root.openNextFile();
   }
 

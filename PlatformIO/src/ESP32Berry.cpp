@@ -1,10 +1,3 @@
-/////////////////////////////////////////////////////////////////
-/*
-  New ESP32Berry Project, The base UI & ChatGPT Client
-  For More Information: https://youtu.be/5K6rSw9j5iY
-  Created by Eric N. (ThatProject)
-*/
-/////////////////////////////////////////////////////////////////
 #include "ESP32Berry.hpp"
 #include <Preferences.h>
 
@@ -40,6 +33,9 @@ void displayEventHandler(Menu_Event_t event, void *param)
     {
     case 0:
       instance->appChatGPT = new AppChatGPT(instance->display, instance->system, instance->network, "ChatGPT Client");
+      break;
+    case 2:
+      instance->appFileBrowser = new AppFileBrowser(instance->display, instance->system, instance->network, "File Browser");
       break;
     }
 

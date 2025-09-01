@@ -1,10 +1,3 @@
-/////////////////////////////////////////////////////////////////
-/*
-  New ESP32Berry Project, The base UI & ChatGPT Client
-  For More Information: https://youtu.be/5K6rSw9j5iY
-  Created by Eric N. (ThatProject)
-*/
-/////////////////////////////////////////////////////////////////
 #pragma once
 #include <lvgl.h>
 #include <vector>
@@ -33,6 +26,7 @@ public:
   System *_system;
   Network *_network;
 
+  lv_obj_t *bodyScreen() const { return _bodyScreen; }
   void base_event_handler(lv_event_t *e);
   void show_loading_popup(bool isOn);
   virtual void close_app() {};

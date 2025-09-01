@@ -328,6 +328,7 @@ void Display::initLVGL()
     cursor_obj = lv_image_create(lv_screen_active());
     lv_image_set_src(cursor_obj, &mouse_cursor_icon);
     lv_indev_set_cursor(mouse_indev, cursor_obj);
+    lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
 
     /*Register a keypad input device*/
     lv_indev_t *kb_indev = lv_indev_create();

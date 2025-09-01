@@ -105,6 +105,10 @@ void Display::ui_app_btns_callback(lv_event_t *e)
             lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
             menu_event_cb(APP, lv_label_get_text(label));
             break;
+        case 2:
+            lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
+            menu_event_cb(APP, lv_label_get_text(label));
+            break;
         default:
             break;
         }
