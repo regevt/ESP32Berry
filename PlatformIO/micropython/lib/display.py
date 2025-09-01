@@ -6,28 +6,41 @@
 
 import time
 import sys
+from .board_config import TFT
 
 try:
     import lvgl as lv
-    import lvesp32
-    from machine import Pin, SPI, I2C, PWM
-except ImportError as e:
-    print('Missing MicroPython lvgl stack:', e)
-    raise
+except Exception as e:
+    print('lvgl not available in host env (OK on dev PC):', e)
+    lv = None  # type: ignore
+try:
+    import lvesp32  # noqa: F401
+except Exception:
+    pass
+try:
+    from machine import Pin, SPI, PWM
+except Exception:
+    # Allow linting on host
+    Pin = SPI = PWM = object  # type: ignore
 
 # Display init
 class Display:
     def __init__(self):
+        if lv is None:
+            raise RuntimeError('lvgl not available - flash a MicroPython build with lvgl bindings')
         lv.init()
         # Backlight
-        self.bl = PWM(Pin(42))
+        if PWM is object:
+            raise RuntimeError('machine.PWM unavailable')
+        self.bl = PWM(Pin(TFT['pins']['bl']))
         self.bl.freq(44100)
         self.set_backlight(0.9)
 
         # SPI for ST7789
-        self.spi = SPI(2, baudrate=80_000_000, polarity=1, phase=1, sck=Pin(40), mosi=Pin(41), miso=Pin(38))
-        self.dc = Pin(11, Pin.OUT)
-        self.cs = Pin(12, Pin.OUT)
+        self.spi = SPI(TFT['spi_host'], baudrate=80_000_000, polarity=1, phase=1,
+                       sck=Pin(TFT['pins']['sclk']), mosi=Pin(TFT['pins']['mosi']), miso=Pin(TFT['pins']['miso']))
+        self.dc = Pin(TFT['pins']['dc'], Pin.OUT)
+        self.cs = Pin(TFT['pins']['cs'], Pin.OUT)
         # Framebuffer driver: use lvesp32 driver helper
         try:
             from ili9xxx import st7789
@@ -36,8 +49,9 @@ class Display:
             raise
 
         self.disp = st7789(
-            mosi=41, miso=38, clk=40, cs=12, dc=11,
-            width=240, height=320, invert=True, rot=0, factor=16,
+            mosi=TFT['pins']['mosi'], miso=TFT['pins']['miso'], clk=TFT['pins']['sclk'],
+            cs=TFT['pins']['cs'], dc=TFT['pins']['dc'],
+            width=TFT['width'], height=TFT['height'], invert=TFT['invert'], rot=0, factor=16,
         )
 
         # Touch GT911 via indev if available
@@ -53,7 +67,7 @@ class Display:
         self.bl.duty_u16(duty)
 
     def width(self):
-        return 240
+        return TFT['width']
 
     def height(self):
-        return 320
+        return TFT['height']

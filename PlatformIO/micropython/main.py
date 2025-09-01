@@ -1,6 +1,7 @@
 # Simple LVGL-based file browser in MicroPython
 from lib.display import Display
 from lib.fs import listdir
+from lib.storage import mount_sd
 from lib.net import wifi_connect
 try:
     import secrets
@@ -17,9 +18,9 @@ except Exception as e:
 import os
 
 class FileBrowser:
-    def __init__(self, disp: Display):
+    def __init__(self, disp: Display, root='/'):
         self.disp = disp
-        self.cur = '/'
+        self.cur = root
         self.make_ui()
         self.refresh()
 
@@ -70,7 +71,13 @@ def main():
     if secrets.WIFI_SSID:
         connected, cfg = wifi_connect(secrets.WIFI_SSID, secrets.WIFI_PASSWORD)
         print('WiFi:', 'connected' if connected else 'not connected', cfg)
-    fb = FileBrowser(d)
+    root = '/'
+    try:
+        root = mount_sd()
+        print('SD mounted at', root)
+    except Exception as e:
+        print('SD mount failed:', e)
+    fb = FileBrowser(d, root=root)
 
 if __name__ == '__main__':
     main()
