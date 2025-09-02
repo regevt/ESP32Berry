@@ -32,10 +32,10 @@ private:
 
   int vRef;
   void init();
-  bool initSDCard();
   void initADCBAT();
 
 public:
+  bool initSDCard();
   TaskHandle_t audioTaskHandler;
   FuncPtrString system_event_cb;
 
@@ -49,7 +49,7 @@ public:
   void read_battery();
   void play_audio(const char *filename);
 
-  std::vector<String> listDir(const char *dirname);
+  std::vector<File> listDir(const char *dirname);
   bool createDir(const char *path);
   bool writeFile(const char *path, const char *message);
   String readFile(const char *path);

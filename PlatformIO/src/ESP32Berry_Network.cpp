@@ -1,10 +1,3 @@
-/////////////////////////////////////////////////////////////////
-/*
-  New ESP32Berry Project, The base UI & ChatGPT Client
-  For More Information: https://youtu.be/5K6rSw9j5iY
-  Created by Eric N. (ThatProject)
-*/
-/////////////////////////////////////////////////////////////////
 #include "ESP32Berry_Network.hpp"
 #include <Preferences.h>
 
@@ -140,10 +133,16 @@ void Network::WiFiScannerStop()
 void Network::WiFiConnector(void *param)
 {
   this->WiFiScannerStop();
+  
   String networkInfo = String((char *)param);
   int seperatorIdx = networkInfo.indexOf(WIFI_SSID_PW_DELIMITER);
   _ssid = networkInfo.substring(0, seperatorIdx);
   _pwd = networkInfo.substring(seperatorIdx + 2, networkInfo.length());
+  Serial.println("Connecting to WiFi...");
+  Serial.println("SSID: " + _ssid);
+  Serial.println("PWD: " + _pwd);
+  Serial.println("networkInfo: " + networkInfo);
+
   saveWiFiDetails(_ssid.c_str(), _pwd.c_str());
   xTaskCreate(ntBeginTask, "ntBeginTask", 4096, NULL, 1, &ntConnectTaskHandler);
 }

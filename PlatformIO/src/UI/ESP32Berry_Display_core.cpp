@@ -217,9 +217,6 @@ void Display::my_key_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
     act_key = keypad_get_key();
     if (act_key != 0)
     {
-        Serial.println(data->key);
-        Serial.println(data->continue_reading);
-
         data->state = LV_INDEV_STATE_PRESSED;
         last_key = act_key;
         HandleKeyboardShortcuts(last_key);
@@ -328,6 +325,7 @@ void Display::initLVGL()
     cursor_obj = lv_image_create(lv_screen_active());
     lv_image_set_src(cursor_obj, &mouse_cursor_icon);
     lv_indev_set_cursor(mouse_indev, cursor_obj);
+    lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
 
     /*Register a keypad input device*/
     lv_indev_t *kb_indev = lv_indev_create();
