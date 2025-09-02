@@ -1,10 +1,11 @@
 import displayio
 import terminalio
 from adafruit_display_text import label
-from adafruit_display_shapes.rect import Rect
-from .display import init_display
-from .storage_cp import mount_sd
-from .wav_player_cp import WavPlayer
+from display import init_display
+from storage_cp import mount_sd
+from wav_player_cp import WavPlayer
+from ui.app_manager import ScreenManager
+from ui.screens import MainScreen, SecondScreen, SettingsScreen
 
 import os
 
@@ -18,12 +19,17 @@ class FileBrowser:
             print("SD mount failed:", e)
         self.cur = self.root
         self.player = WavPlayer()
-        self.make_ui()
-        self.refresh()
+    self.make_ui()
+    self.refresh()
 
     def make_ui(self):
         self.group = displayio.Group()
-        self.display.show(self.group)
+        try:
+            # CircuitPython 8 and earlier
+            self.display.show(self.group)
+        except AttributeError:
+            # CircuitPython 9+: use root_group property
+            self.display.root_group = self.group
         # Header
         self.header = displayio.Group()
         self.group.append(self.header)
@@ -64,7 +70,12 @@ class FileBrowser:
     # For simplicity, no touch handling here; use a keyboard or rotary in a later step
 
 
-def main():
+def main(use_demo_ui: bool = False):
+    if use_demo_ui:
+        disp = init_display()
+        sm = ScreenManager(disp)
+        main_screen = MainScreen(disp)
+        sm.show_screen(main_screen.get_group())
+        return
     fb = FileBrowser()
 
-main()

@@ -17,5 +17,11 @@ rsync -av --delete "$APP/storage_cp.py" "$VOL/"
 rsync -av --delete "$APP/wav_player_cp.py" "$VOL/"
 rsync -av --delete "$APP/board_config.py" "$VOL/"
 rsync -av --delete "$APP/secrets.py" "$VOL/"
+# UI package (screens/components)
+rsync -av --delete "$APP/ui" "$VOL/"
+# Optional: sync local CircuitPython libs if present
+# if [ -d "$APP/lib" ]; then
+#   rsync -av --delete "$APP/lib/" "$VOL/lib/"
+# fi
 set +x
 sync
