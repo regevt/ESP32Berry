@@ -9,8 +9,9 @@ LV_IMG_DECLARE(folder_icon);
 extern "C" void fb_folder_click_event_cb_thunk(lv_event_t *e)
 {
   const char *folderNameCStr = static_cast<const char *>(lv_event_get_user_data(e));
-  std::string folderName(folderNameCStr ? folderNameCStr : "");
-  instance->history.push_back(folderName);
+  std::string folderName(folderNameCStr ? folderNameCStr : "/");
+  instance->history.push_back(instance->currentDir);
+  instance->currentDir = folderName;
   instance->printFiles(folderName);
 }
 
@@ -18,7 +19,7 @@ extern "C" void fb_back_click_event_cb_thunk(lv_event_t *e)
 {
   string prev = instance->history.back();
   instance->history.pop_back();
-  instance->printFiles(prev);
+  instance->printFiles(prev.length() > 0 ? prev : "/");
 }
 
 AppFileBrowser::AppFileBrowser(Display *display, System *system, Network *network, const char *title)
@@ -41,6 +42,7 @@ void fileBrowserTsk(void *pvParameters)
   }
   else
   {
+    instance->history.clear();
     instance->printFiles("/");
     instance->currentDir = "/";
     Serial.println("File Browser Task Completed");
@@ -62,7 +64,6 @@ void AppFileBrowser::initFileBrowser()
 void AppFileBrowser::printFiles(string rootDir)
 {
   std::vector<fs::File> dirs = instance->_system->listDir(rootDir.c_str()); // List root directory contents
-  Serial.printf("Listing directory: %s\n", rootDir.c_str());
 
   // Create a scrollable container to hold the directory entries
   instance->_display->lv_port_sem_take();
@@ -145,7 +146,8 @@ void AppFileBrowser::printFiles(string rootDir)
   lv_obj_set_style_bg_color(backBtn, lv_color_hex(0xEEEEEE), LV_PART_MAIN | LV_STATE_DISABLED);
   lv_obj_set_style_bg_opa(backBtn, 255, LV_PART_MAIN | LV_STATE_DISABLED);
   lv_obj_set_style_border_width(backBtn, 0, LV_PART_MAIN | LV_STATE_DISABLED);
-  if (instance->currentDir == "/" || instance->history.size() <= 1)
+
+  if (instance->currentDir.c_str() == "/" || instance->history.size() < 1)
   {
     lv_obj_add_state(backBtn, LV_STATE_DISABLED);
     lv_obj_remove_flag(backBtn, LV_OBJ_FLAG_CLICKABLE);

@@ -4,6 +4,7 @@
 */
 /////////////////////////////////////////////////////////////////
 #include "UI/ESP32Berry_Display.hpp"
+#include <WiFi.h>  // add this
 
 extern "C" void wifi_event_cb_thunk(lv_event_t *e);
 extern "C" void textarea_event_cb_thunk(lv_event_t *e);
@@ -39,9 +40,9 @@ void Display::ui_wifi_event_callback(lv_event_t *e)
     else
     {
       int length = strlen(lv_list_get_btn_text(ui_WiFiList, btn));
-      char ssidName[length - 7];
-      strncpy(ssidName, lv_list_get_btn_text(ui_WiFiList, btn), length - 8);
-      ssidName[length - 8] = '\0';
+      char ssidName[length];
+      strncpy(ssidName, lv_list_get_btn_text(ui_WiFiList, btn), length);
+      ssidName[length] = '\0';
       lv_label_set_text(ui_WiFiMBoxTitle, ssidName);
       lv_obj_move_foreground(ui_WiFiMBox);
       lv_obj_clear_flag(ui_WiFiMBox, LV_OBJ_FLAG_HIDDEN);
@@ -79,6 +80,25 @@ void Display::ui_WiFi_page()
   ui_WiFiList = lv_list_create(ui_WiFiPanel);
   lv_obj_set_size(ui_WiFiList, tft->width() - 70, tft->height() - 90);
   lv_obj_align_to(ui_WiFiList, ui_WiFiPanelLabel, LV_ALIGN_TOP_LEFT, 0, 20);
+
+  // Populate the list (scan and add items)
+  lv_obj_clean(ui_WiFiList);
+  int n = WiFi.scanNetworks();
+  for (int i = 0; i < n; ++i) {
+    String ssid = WiFi.SSID(i);
+    int32_t rssi = WiFi.RSSI(i);
+    bool locked = WiFi.encryptionType(i) != WIFI_AUTH_OPEN;
+
+  char label[96];
+  // Use a simple ASCII marker for secured networks to avoid relying on an undefined LVGL symbol
+  snprintf(label, sizeof(label), "%s", ssid.c_str());
+
+    lv_obj_t *item = lv_list_add_btn(ui_WiFiList, LV_SYMBOL_WIFI, label);
+    lv_obj_add_event_cb(item, wifi_event_cb_thunk, LV_EVENT_CLICKED, NULL);
+  }
+
+  // If you intend to show the panel immediately, don't hide it here.
+  // If you want it hidden by default, make sure you clear this flag when opening the Wi-Fi page.
   lv_obj_add_flag(ui_WiFiPanel, LV_OBJ_FLAG_HIDDEN);
 
   ui_WiFiMBox = lv_obj_create(ui_Main_Screen);

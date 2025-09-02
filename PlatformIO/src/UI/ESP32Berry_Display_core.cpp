@@ -217,9 +217,6 @@ void Display::my_key_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
     act_key = keypad_get_key();
     if (act_key != 0)
     {
-        Serial.println(data->key);
-        Serial.println(data->continue_reading);
-
         data->state = LV_INDEV_STATE_PRESSED;
         last_key = act_key;
         HandleKeyboardShortcuts(last_key);
