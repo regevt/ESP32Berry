@@ -9,19 +9,41 @@ if [ ! -d "$VOL" ]; then
 fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT"
+
+# Optional: set CLEAN=1 to enable deletions on the device for removed files
+# Change detection strategy (default: size). Options: size | mtime | checksum
+#   size:      fastest; only size compared (good for CIRCUITPY FAT timestamp quirks)
+#   mtime:     compare mod-time with a 2s window (FAT resolution)
+#   checksum:  compute file checksums (slow but accurate if sizes match)
+DETECT_MODE=${DETECT:-size}
+RSYNC_FLAGS=( -a )
+if [ "${VERBOSE:-1}" = "1" ]; then
+  RSYNC_FLAGS+=( -v )
+fi
+case "$DETECT_MODE" in
+  size) RSYNC_FLAGS+=( --size-only ) ;;
+  mtime) RSYNC_FLAGS+=( --modify-window=2 ) ;;
+  checksum) RSYNC_FLAGS+=( -c ) ;;
+  *) RSYNC_FLAGS+=( --size-only ) ;;
+esac
+if [ "${CLEAN:-0}" = "1" ]; then
+  RSYNC_FLAGS+=( --delete )
+fi
+
 set -x
-rsync -av --delete "$APP/code.py" "$VOL/"
-rsync -av --delete "$APP/app.py" "$VOL/"
-rsync -av --delete "$APP/display.py" "$VOL/"
-rsync -av --delete "$APP/storage_cp.py" "$VOL/"
-rsync -av --delete "$APP/wav_player_cp.py" "$VOL/"
-rsync -av --delete "$APP/board_config.py" "$VOL/"
-rsync -av --delete "$APP/secrets.py" "$VOL/"
-# UI package (screens/components)
-rsync -av --delete "$APP/ui" "$VOL/"
-# Optional: sync local CircuitPython libs if present
-# if [ -d "$APP/lib" ]; then
-#   rsync -av --delete "$APP/lib/" "$VOL/lib/"
-# fi
+# Use a single rsync with include/exclude so only our app files/dirs are considered.
+# Unchanged files are skipped by rsync (mtime/size), so only modified files transfer.
+rsync "${RSYNC_FLAGS[@]}" \
+  --include='code.py' \
+  --include='app.py' \
+  --include='display.py' \
+  --include='storage_cp.py' \
+  --include='wav_player_cp.py' \
+  --include='board_config.py' \
+  --include='secrets.py' \
+  --include='ui/***' \
+  --include='assets/***' \
+  --exclude='*' \
+  "$APP/" "$VOL/"
 set +x
 sync

@@ -19,8 +19,8 @@ class FileBrowser:
             print("SD mount failed:", e)
         self.cur = self.root
         self.player = WavPlayer()
-    self.make_ui()
-    self.refresh()
+        self.make_ui()
+        self.refresh()
 
     def make_ui(self):
         self.group = displayio.Group()
@@ -70,12 +70,13 @@ class FileBrowser:
     # For simplicity, no touch handling here; use a keyboard or rotary in a later step
 
 
-def main(use_demo_ui: bool = False):
+def main(use_demo_ui: bool = True):
     if use_demo_ui:
         disp = init_display()
         sm = ScreenManager(disp)
         main_screen = MainScreen(disp)
         sm.show_screen(main_screen.get_group())
         return
+    
     fb = FileBrowser()
 

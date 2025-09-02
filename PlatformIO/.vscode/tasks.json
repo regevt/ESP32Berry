@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Upload to device (CIRCUITPY)",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-lc",
+				"chmod +x circuitpython/tools/upload.sh && circuitpython/tools/upload.sh"
+			],
+			"isBackground": false,
+			"group": "none"
+		},
+	]
+}

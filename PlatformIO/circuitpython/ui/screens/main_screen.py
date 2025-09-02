@@ -19,7 +19,7 @@ class MainScreen:
 
         # Header/status bar
         self.title = label.Label(terminalio.FONT, text="ESP32Berry", color=0xFFFFFF, x=display.width//2 - 40, y=12)
-        self.user = label.Label(terminalio.FONT, text="USER", color=0xFFFFFF, x=display.width//2 - 20, y=24)
+        self.user = label.Label(terminalio.FONT, text="USER111", color=0xFFFFFF, x=display.width//2 - 20, y=24)
         self.noti = label.Label(terminalio.FONT, text="...", color=0xFFFFFF, x=display.width-40, y=12)
         self.header.append(self.title)
         self.header.append(self.user)
