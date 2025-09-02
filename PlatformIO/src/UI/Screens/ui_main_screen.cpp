@@ -170,6 +170,11 @@ void Display::ui_main()
         {
             ui_btn_icon = lv_img_create(obj);
             lv_img_set_src(ui_btn_icon, &folder_BW);
+            lv_obj_set_width(ui_btn_icon, LV_SIZE_CONTENT);
+            lv_obj_set_height(ui_btn_icon, LV_SIZE_CONTENT);
+            lv_obj_set_align(ui_btn_icon, LV_ALIGN_CENTER);
+            lv_obj_add_flag(ui_btn_icon, LV_OBJ_FLAG_ADV_HITTEST);
+            lv_obj_clear_flag(ui_btn_icon, LV_OBJ_FLAG_SCROLLABLE);
         }
     }
 
