@@ -40,6 +40,9 @@ void displayEventHandler(Menu_Event_t event, void *param)
     case 1:
       instance->appGPS = new AppGPS(instance->display, instance->system, instance->network, "GPS Client");
       break;
+    case 3:
+      instance->appMp3 = new AppMp3(instance->display, instance->system, instance->network, "MP3 player");
+      break;
     }
 
     break;

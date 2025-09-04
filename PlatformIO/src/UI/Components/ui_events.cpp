@@ -98,21 +98,10 @@ void Display::ui_app_btns_callback(lv_event_t *e)
         set_notification("");
 
         lv_obj_t *label = lv_obj_get_child(btn, 0);
-        String appBtnLabel = lv_label_get_text(label);
-        switch (appBtnLabel.toInt())
-        {
-        case 0:
-            lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
-            menu_event_cb(APP, lv_label_get_text(label));
-            break;
-        case 2:
-        case 1:
-            lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
-            menu_event_cb(APP, lv_label_get_text(label));
-            break;
-        default:
-            break;
-        }
+    // Hidden label inside each app button stores its index as text
+    // Forward all indices to the APP handler to allow dynamically added apps.
+    lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
+    menu_event_cb(APP, lv_label_get_text(label));
     }
 }
 
