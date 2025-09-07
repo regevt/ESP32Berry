@@ -1,6 +1,8 @@
 #include "Apps/FileBrowser/ESP32Berry_AppFileBrowser.hpp"
 #include <Configurations/secrets.h>
 #include "Utils/BusLock.hpp"
+#include <Utils/Globals.h>
+#include <Utils/EventManager/EventManager.h>
 
 static AppFileBrowser *instance = NULL;
 
@@ -22,11 +24,11 @@ extern "C" void fb_back_click_event_cb_thunk(lv_event_t *e)
   instance->printFiles(prev.length() > 0 ? prev : "/");
 }
 
-AppFileBrowser::AppFileBrowser(Display *display, System *system, Network *network, const char *title)
-    : AppBase(display, system, network, title)
+AppFileBrowser::AppFileBrowser(System *system, lv_obj_t *screen, const char *title)
+    : AppBase(screen, title)
 {
   instance = this;
-  display_width = display->get_display_width();
+  display_width = Globals::get().screen_width;
   client.setInsecure();
   this->initFileBrowser();
 }
@@ -48,10 +50,6 @@ void fileBrowserTsk(void *pvParameters)
     Serial.println("File Browser Task Completed");
   }
 
-  instance->_display->lv_port_sem_take();
-  // instance->show_loading_popup(false);
-  instance->_display->lv_port_sem_give();
-
   vTaskDelete(NULL);
 }
 
@@ -66,13 +64,13 @@ void AppFileBrowser::printFiles(string rootDir)
   std::vector<fs::File> dirs = instance->_system->listDir(rootDir.c_str()); // List root directory contents
 
   // Create a scrollable container to hold the directory entries
-  instance->_display->lv_port_sem_take();
+  GlobalEventBus.emit(Events::PORT_SEM_TAKE, "");
   lv_obj_t *fileListCont = lv_obj_create(instance->bodyScreen());
   lv_obj_set_x(fileListCont, -12);
   lv_obj_set_y(fileListCont, 14);
   lv_obj_set_size(fileListCont,
-                  instance->_display->get_display_width(),
-                  instance->_display->get_display_height() - 70);
+                  Globals::get().screen_width,
+                  Globals::get().screen_height - 70);
   lv_obj_set_align(fileListCont, LV_ALIGN_TOP_LEFT);
   lv_obj_set_style_pad_all(fileListCont, 0, 0);
   lv_obj_set_scroll_dir(fileListCont, LV_DIR_VER);                   // enable vertical scrolling
@@ -104,7 +102,7 @@ void AppFileBrowser::printFiles(string rootDir)
     }
 
     lv_obj_t *fileLbl = lv_label_create(fileListCont);
-    lv_obj_set_width(fileLbl, instance->_display->get_display_width() - 20);
+    lv_obj_set_width(fileLbl, Globals::get().screen_width - 20);
     lv_obj_set_height(fileLbl, LV_SIZE_CONTENT);
     lv_obj_set_x(fileLbl, 38);
     lv_obj_set_y(fileLbl, counter * 24 + 10);
@@ -131,7 +129,7 @@ void AppFileBrowser::printFiles(string rootDir)
   lv_obj_t *backBtn = lv_button_create(instance->bodyScreen());
   lv_obj_set_size(backBtn, 70, 30);
   lv_obj_set_x(backBtn, 0);
-  lv_obj_set_y(backBtn, instance->_display->get_display_height() - 50);
+  lv_obj_set_y(backBtn, Globals::get().screen_height - 50);
   lv_obj_set_align(backBtn, LV_ALIGN_TOP_LEFT);
   lv_obj_set_style_bg_color(backBtn, lv_color_hex(0xE0E0E0), LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(backBtn, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -158,12 +156,12 @@ void AppFileBrowser::printFiles(string rootDir)
     lv_obj_add_flag(backBtn, LV_OBJ_FLAG_CLICKABLE);
   }
 
-  instance->_display->lv_port_sem_give();
+  GlobalEventBus.emit(Events::PORT_SEM_GIVE, "");
 }
 
 void AppFileBrowser::close_app()
 {
-  _display->goback_main_screen();
+  GlobalEventBus.emit(Events::GO_BACK_MAIN_SCREEN, "");
   lv_obj_del(_bodyScreen);
   delete this;
 }

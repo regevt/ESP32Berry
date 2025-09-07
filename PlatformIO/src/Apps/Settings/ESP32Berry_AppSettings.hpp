@@ -30,7 +30,7 @@ private:
   void textarea_event_cb(lv_event_t *e);
 
 public:
-  AppSettings(Display *display, System *system, Network *network, const char *title);
+  AppSettings(lv_obj_t *screen, const char *title);
   ~AppSettings();
   void draw_ui();
   lv_obj_t *ui_SliderSpeaker;

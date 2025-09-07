@@ -3,12 +3,10 @@
 #include <Utils/EventManager/EventManager.h>
 
 static AppBase *instance = NULL;
-AppBase::AppBase(Display *display, System *system, Network *network, const char *title)
+AppBase::AppBase(lv_obj_t *screen, const char *title)
 {
   instance = this;
-  _display = display;
-  _system = system;
-  _network = network;
+  ui_Sub_Screen = screen;
   this->ui_app(title);
   this->ui_loading();
 }
@@ -38,8 +36,7 @@ void AppBase::ui_interactive()
 
 void AppBase::ui_app(const char *title)
 {
-
-  _bodyScreen = lv_obj_create(_display->ui_second_screen());
+  _bodyScreen = lv_obj_create(ui_Sub_Screen);
   lv_obj_clear_flag(_bodyScreen, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_bg_color(_bodyScreen, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(_bodyScreen, 255, LV_PART_MAIN | LV_STATE_DEFAULT);

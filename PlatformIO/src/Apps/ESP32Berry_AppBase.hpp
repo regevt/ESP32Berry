@@ -13,6 +13,7 @@ private:
   void ui_loading();
 
 protected:
+  lv_obj_t *ui_Sub_Screen;
   lv_obj_t *_bodyScreen;
   lv_obj_t *ui_AppPanel;
   lv_obj_t *ui_AppTitle;
@@ -20,12 +21,8 @@ protected:
   lv_obj_t *ui_Loading;
 
 public:
-  AppBase(Display *display, System *system, Network *network, const char *title);
+  AppBase(lv_obj_t *screen, const char *title);
   ~AppBase();
-  Display *_display;
-  System *_system;
-  Network *_network;
-
   void ui_interactive();
   lv_obj_t *bodyScreen() const { return _bodyScreen; }
   void base_event_handler(lv_event_t *e);

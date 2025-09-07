@@ -14,8 +14,10 @@ private:
   void initFileBrowser();
 
 public:
-  AppFileBrowser(Display *display, System *system, Network *network, const char *title);
+  AppFileBrowser(System *system, lv_obj_t *screen, const char *title);
   ~AppFileBrowser();
+
+  System *_system;
 
   std::vector<string> history;
   string currentDir = "/";

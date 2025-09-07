@@ -66,12 +66,15 @@ Display::Display(FuncPtrInt callback)
                       { this->register_activity(); });
 
     GlobalEventBus.on(Events::SCREEN_TIMEOUT_CHANGED, [this](String data)
-                      { instance->set_screen_timeout(data.toInt()); });
+                      { this->set_screen_timeout(data.toInt()); });
 
     GlobalEventBus.on(Events::PORT_SEM_TAKE, [this](String data)
                       { this->lv_port_sem_take(); });
     GlobalEventBus.on(Events::PORT_SEM_GIVE, [this](String data)
                       { this->lv_port_sem_give(); });
+
+    GlobalEventBus.on(Events::GO_BACK_MAIN_SCREEN, [this](String data)
+                      { this->goback_main_screen(); });
 }
 
 Display::~Display()

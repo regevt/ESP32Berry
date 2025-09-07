@@ -13,6 +13,7 @@ namespace Events
     static const String SCREEN_TIMEOUT_CHANGED = "screen_timeout_changed";
     static const String PORT_SEM_TAKE = "port_sem_take";
     static const String PORT_SEM_GIVE = "port_sem_give";
+    static const String GO_BACK_MAIN_SCREEN = "go_back_main_screen";
 }
 
 struct Globals

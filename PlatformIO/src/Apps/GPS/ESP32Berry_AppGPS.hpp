@@ -37,7 +37,7 @@ private:
   String current_address = "Connecting to GPS...";
 
 public:
-  AppGPS(Display *display, System *system, Network *network, const char *title);
+  AppGPS(lv_obj_t *screen, const char *title);
   ~AppGPS();
   void draw_ui(); // legacy: kept for compatibility, now calls ensure_ui_created + updates
   void ensure_ui_created();

@@ -21,16 +21,16 @@ void displayEventHandler(Menu_Event_t event, void *param)
     switch (menuNum)
     {
     case 0:
-      instance->appChatGPT = new AppChatGPT(instance->display, instance->system, instance->network, "ChatGPT Client");
+      instance->appChatGPT = new AppChatGPT(instance->display->ui_second_screen(), "ChatGPT Client");
       break;
     case 2:
-      instance->appFileBrowser = new AppFileBrowser(instance->display, instance->system, instance->network, "File Browser");
+      instance->appFileBrowser = new AppFileBrowser(instance->system, instance->display->ui_second_screen(), "File Browser");
       break;
     case 1:
-      instance->appGPS = new AppGPS(instance->display, instance->system, instance->network, "GPS Client");
+      instance->appGPS = new AppGPS(instance->display->ui_second_screen(), "GPS Client");
       break;
     case 4:
-      instance->appSettings = new AppSettings(instance->display, instance->system, instance->network, "Settings");
+      instance->appSettings = new AppSettings(instance->display->ui_second_screen(), "Settings");
       break;
     }
 

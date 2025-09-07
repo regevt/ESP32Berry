@@ -40,8 +40,6 @@ private:
     lv_obj_t *ui_AppPanel;
     lv_obj_t *ui_AppTitle;
     lv_obj_t *ui_AppCloseBtn;
-
-    // lv_obj_t *ui_WiFiPanelCloseBtn;
     lv_obj_t *ui_WiFiLabel;
     lv_obj_t *ui_Userlabel;
     lv_obj_t *ui_TimeLabel;
@@ -50,12 +48,6 @@ private:
     lv_obj_t *ui_Sub_Screen;
     lv_obj_t *ui_Focused_Obj;
     lv_obj_t *ui_Loading;
-
-    // lv_obj_t *ui_WiFiMBox;
-    // lv_obj_t *ui_WiFiMBoxTitle;
-    // lv_obj_t *ui_WiFiMBoxPassword;
-    // lv_obj_t *ui_WiFiMBoxConnectBtn;
-    // lv_obj_t *ui_WiFiMBoxCloseBtn;
     lv_obj_t *ui_BasePopup;
     lv_obj_t *ui_BasePopupCloseBtn;
     lv_obj_t *ui_BasePopupTitle;

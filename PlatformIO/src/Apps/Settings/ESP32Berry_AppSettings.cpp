@@ -99,8 +99,8 @@ void AppSettings::update_ui_network(void *data1, void *data2)
   lv_obj_add_flag(ui_WiFiList, LV_OBJ_FLAG_SCROLLABLE);
 }
 
-AppSettings::AppSettings(Display *display, System *system, Network *network, const char *title)
-    : AppBase(display, system, network, title)
+AppSettings::AppSettings(lv_obj_t *screen, const char *title)
+    : AppBase(screen, title)
 {
   instance = this;
 
@@ -459,7 +459,7 @@ void AppSettings::ui_event_callback(lv_event_t *e)
 
 void AppSettings::close_app()
 {
-  _display->goback_main_screen();
+  GlobalEventBus.emit(Events::GO_BACK_MAIN_SCREEN, "");
   lv_obj_del(_bodyScreen);
   delete this;
 }
