@@ -86,7 +86,7 @@ private:
   void draw_ui();
 
 public:
-  {class_name}(v_obj_t *screen, const char *title);
+  {class_name}(lv_obj_t *screen, const char *title);
   ~{class_name}();
   void close_app();
 }};
@@ -100,8 +100,8 @@ public:
     if not os.path.exists(cpp_path):
         cpp = f"""#include \"Apps/{folder}/ESP32Berry_App{folder}.hpp\"\n
 static {class_name} *instance = NULL;\n
-{class_name}::{class_name}(const char *title)
-	: AppBase(title) {{
+{class_name}::{class_name}(lv_obj_t *screen, const char *title)
+	: AppBase(screen, title) {{
   instance = this;
   this->draw_ui();
 }}
@@ -178,7 +178,7 @@ def patch_esp32berry_cpp(
     class_name = f"App{class_suffix}"
     new_case = (
         f"    case {index}:\n"
-        f'      instance->app{class_suffix} = new {class_name}(instance->display, instance->system, instance->network, "{title}");\n'
+        f'      instance->app{class_suffix} = new {class_name}(instance->display->ui_second_screen(), "{title}");\n'
         f"      break;\n"
     )
 
