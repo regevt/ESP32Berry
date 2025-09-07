@@ -29,6 +29,9 @@ void displayEventHandler(Menu_Event_t event, void *param)
     case 1:
       instance->appGPS = new AppGPS(instance->display->ui_second_screen(), "GPS Client");
       break;
+    case 3:
+      instance->appMp3 = new AppMp3(instance->system, instance->display->ui_second_screen(), "MP3 player");
+      break;
     case 4:
       instance->appSettings = new AppSettings(instance->display->ui_second_screen(), "Settings");
       break;
