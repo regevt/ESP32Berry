@@ -31,6 +31,54 @@ extern "C" void ui_app_btns_callback_thunk(lv_event_t *e)
     instance->ui_app_btns_callback(e);
 }
 
+lv_obj_t *Display::focused_obj()
+{
+    return ui_Focused_Obj;
+}
+
+void Display::set_focused_obj(lv_obj_t *obj)
+{
+    ui_Focused_Obj = obj;
+}
+
+lv_obj_t *Display::ui_second_screen()
+{
+    return ui_Sub_Screen;
+}
+
+void Display::goback_main_screen()
+{
+    lv_scr_load_anim(ui_Main_Screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0, false);
+}
+
+void Display::lv_port_sem_take(void)
+{
+    TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    if (lvgl_task_handle != task)
+    {
+        xSemaphoreTake(bin_sem, portMAX_DELAY);
+    }
+}
+
+void Display::lv_port_sem_give(void)
+{
+    TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    if (lvgl_task_handle != task)
+    {
+        xSemaphoreGive(bin_sem);
+    }
+}
+
+int Display::get_display_width()
+{
+    return tft->width();
+}
+
+int Display::get_display_height()
+{
+    return tft->height();
+}
+
 Display::Display(FuncPtrInt callback)
 {
     instance = this;
