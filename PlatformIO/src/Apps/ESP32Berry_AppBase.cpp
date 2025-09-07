@@ -1,4 +1,6 @@
 #include "../Apps/ESP32Berry_AppBase.hpp"
+#include <Utils/Globals.h>
+#include <Utils/EventManager/EventManager.h>
 
 static AppBase *instance = NULL;
 AppBase::AppBase(Display *display, System *system, Network *network, const char *title)
@@ -27,6 +29,11 @@ void AppBase::base_event_handler(lv_event_t *e)
   {
     this->close_app();
   }
+}
+
+void AppBase::ui_interactive()
+{
+  GlobalEventBus.emit(Events::UI_ACTIVITY, "");
 }
 
 void AppBase::ui_app(const char *title)

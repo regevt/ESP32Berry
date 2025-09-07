@@ -4,6 +4,7 @@
 */
 /////////////////////////////////////////////////////////////////
 #include "UI/ESP32Berry_Display.hpp"
+#include "Apps/Settings/ESP32Berry_AppSettings.hpp"
 #include <Arduino.h>
 
 extern "C" void wifi_event_cb_thunk(lv_event_t *e);
@@ -21,72 +22,6 @@ void Display::ui_event_callback(lv_event_t *e)
     {
         lv_obj_add_flag(ui_BasePopup, LV_OBJ_FLAG_HIDDEN);
     }
-    else if (target == ui_TopPanel && event_code == LV_EVENT_CLICKED)
-    {
-        if (lv_obj_has_flag(ui_ControlPanel, LV_OBJ_FLAG_HIDDEN))
-            lv_obj_clear_flag(ui_ControlPanel, LV_OBJ_FLAG_HIDDEN);
-        else
-            lv_obj_add_flag(ui_ControlPanel, LV_OBJ_FLAG_HIDDEN);
-    }
-    else if (target == ui_SliderBrightness && event_code == LV_EVENT_VALUE_CHANGED)
-    {
-        int sliderValue = lv_slider_get_value(ui_SliderBrightness);
-        tft->setBrightness(sliderValue);
-        // Remember user's chosen brightness so inactivity wake restores this
-        previous_brightness = sliderValue;
-        if (screen_dimmed && sliderValue > 0)
-        {
-            // If user moves slider while dimmed, treat as activity and undim immediately
-            screen_dimmed = false;
-        }
-    }
-    else if (target == ui_SliderSpeaker && event_code == LV_EVENT_VALUE_CHANGED)
-    {
-        int sliderValue = lv_slider_get_value(ui_SliderSpeaker);
-        menu_event_cb(SET_AUDIO, reinterpret_cast<void *>(sliderValue));
-    }
-    else if (target == ui_ImgBtnWiFi && event_code == LV_EVENT_CLICKED)
-    {
-        if (lv_obj_get_state(ui_ImgBtnWiFi) & LV_STATE_CHECKED)
-        {
-            menu_event_cb(WIFI_ON, NULL);
-        }
-        else
-        {
-            menu_event_cb(WIFI_OFF, NULL);
-            lv_obj_clean(ui_WiFiList);
-        }
-    }
-    else if (target == ui_BtnWiFi && event_code == LV_EVENT_CLICKED)
-    {
-        lv_obj_clear_flag(ui_WiFiPanel, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(ui_ControlPanel, LV_OBJ_FLAG_HIDDEN);
-    }
-    else if ((target == ui_ImgBtnCursor && event_code == LV_EVENT_CLICKED) || (target == ui_PanelCursor && event_code == LV_EVENT_CLICKED))
-    {
-        // Toggles each time
-        cursor_panel_active = !cursor_panel_active;
-        if (cursor_panel_active)
-        {
-            lv_obj_set_style_bg_color(ui_PanelCursor, lv_color_hex(0x33bd33), LV_PART_MAIN | LV_STATE_DEFAULT); // #33bd33ff
-            lv_obj_set_style_bg_color(ui_ImgBtnCursor, lv_color_hex(0x33bd33), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_clear_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
-        }
-        else
-        {
-            lv_obj_set_style_bg_color(ui_PanelCursor, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(ui_ImgBtnCursor, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_add_flag(cursor_obj, LV_OBJ_FLAG_HIDDEN);
-        }
-    }
-    else if (target == ui_ScreenTimeout && event_code == LV_EVENT_VALUE_CHANGED)
-    {
-        int sliderValue = lv_slider_get_value(ui_ScreenTimeout);
-        String timeoutText = String(sliderValue) + " min";
-        lv_label_set_text(ui_LabelScreenTimeoutValue, timeoutText.c_str());
-        menu_event_cb(SCREEN_TIMEOUT, reinterpret_cast<void *>(sliderValue));
-        set_screen_timeout(sliderValue);
-    }
 }
 
 void Display::ui_app_btns_callback(lv_event_t *e)
@@ -98,21 +33,10 @@ void Display::ui_app_btns_callback(lv_event_t *e)
         set_notification("");
 
         lv_obj_t *label = lv_obj_get_child(btn, 0);
-        String appBtnLabel = lv_label_get_text(label);
-        switch (appBtnLabel.toInt())
-        {
-        case 0:
-            lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
-            menu_event_cb(APP, lv_label_get_text(label));
-            break;
-        case 2:
-        case 1:
-            lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
-            menu_event_cb(APP, lv_label_get_text(label));
-            break;
-        default:
-            break;
-        }
+        // Hidden label inside each app button stores its index as text
+        // Forward all indices to the APP handler to allow dynamically added apps.
+        lv_scr_load_anim(ui_Sub_Screen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, false);
+        menu_event_cb(APP, lv_label_get_text(label));
     }
 }
 
@@ -129,47 +53,6 @@ void Display::textarea_event_cb(lv_event_t *e)
     {
         ui_Focused_Obj = NULL;
     }
-}
-
-void Display::update_ui_network(void *data1, void *data2)
-{
-    lv_port_sem_take();
-    if (!lv_obj_has_flag(ui_WiFiMBox, LV_OBJ_FLAG_HIDDEN))
-    {
-        lv_port_sem_give();
-        return;
-    }
-
-    lv_obj_clear_flag(ui_WiFiList, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(ui_WiFiList, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clean(ui_WiFiList);
-
-    int *arraySize = static_cast<int *>(data2);
-
-    std::string *strPtr = static_cast<std::string *>(data1);
-    std::vector<std::string> newWifiList(strPtr, strPtr + *arraySize);
-
-    lv_list_add_text(ui_WiFiList, newWifiList.size() > 1 ? "WiFi: Found Networks" : "WiFi: Not Found!");
-    for (std::vector<std::string>::iterator item = newWifiList.begin(); item != newWifiList.end(); ++item)
-    {
-
-        lv_obj_t *btn = lv_list_add_btn(ui_WiFiList, LV_SYMBOL_WIFI, (*item).c_str());
-        lv_obj_add_event_cb(btn, wifi_event_cb_thunk, LV_EVENT_CLICKED, NULL);
-    }
-    lv_port_sem_give();
-
-    lv_obj_add_flag(ui_WiFiList, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(ui_WiFiList, LV_OBJ_FLAG_SCROLLABLE);
-}
-
-void Display::update_volume_slider(int32_t volume)
-{
-    if (!ui_SliderSpeaker)
-    {
-        pendingVolume = volume;
-        return;
-    }
-    lv_slider_set_value(ui_SliderSpeaker, volume, LV_ANIM_OFF);
 }
 
 void Display::update_time(void *timeStruct)

@@ -24,6 +24,7 @@ class Network
 private:
   typedef void (*FuncPtrVector)(Network_Event_t, void *, void *);
   friend void ntScanTask(void *pvParameters);
+  bool wifiSate = true;
   Network_Event_t _networkEvent;
   void WiFiScanner(bool isOn);
   void WiFiScannerStop();
@@ -31,6 +32,7 @@ private:
 
 public:
   String _ssid, _pwd;
+
   std::vector<String> WiFiLog;
   TaskHandle_t ntScanTaskHandler, ntConnectTaskHandler;
   FuncPtrVector network_result_cb;

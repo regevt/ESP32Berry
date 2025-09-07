@@ -33,6 +33,7 @@ private:
   int vRef;
   void init();
   void initADCBAT();
+  void setVolume(int volume);
 
 public:
   bool initSDCard();

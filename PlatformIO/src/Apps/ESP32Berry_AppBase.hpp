@@ -26,6 +26,7 @@ public:
   System *_system;
   Network *_network;
 
+  void ui_interactive();
   lv_obj_t *bodyScreen() const { return _bodyScreen; }
   void base_event_handler(lv_event_t *e);
   void show_loading_popup(bool isOn);

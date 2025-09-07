@@ -176,6 +176,15 @@ void Display::ui_main()
             lv_obj_add_flag(ui_btn_icon, LV_OBJ_FLAG_ADV_HITTEST);
             lv_obj_clear_flag(ui_btn_icon, LV_OBJ_FLAG_SCROLLABLE);
         }
+		if (i == 4)
+		{
+            lv_obj_t *sym = lv_label_create(obj);
+            lv_label_set_text(sym, LV_SYMBOL_SETTINGS);
+            lv_obj_set_style_text_font(sym, &lv_font_montserrat_32, 0);
+            lv_obj_set_style_text_color(sym, lv_color_hex(0xFFFFFF), 0);
+            lv_obj_center(sym);
+		}
+
     }
 
     lv_disp_load_scr(ui_Main_Screen);

@@ -1,7 +1,6 @@
 #include "ESP32Berry.hpp"
-#include <Preferences.h>
-
-Preferences preferences;
+#include "Utils/Globals.h"
+#include "Utils/EventManager/EventManager.h"
 
 static ESP32Berry *instance = NULL;
 
@@ -16,16 +15,6 @@ void displayEventHandler(Menu_Event_t event, void *param)
 {
   switch (event)
   {
-  case WIFI_OFF:
-  {
-    instance->network->WiFiCommend(NETWORK_SCANNING_OFF, param);
-    break;
-  }
-  case WIFI_ON:
-  {
-    instance->network->WiFiCommend(param == NULL ? NETWORK_SCANNING_ON : NETWORK_CONNECTING, param);
-    break;
-  }
   case APP:
   {
     int menuNum = std::stoi((char *)param);
@@ -40,27 +29,11 @@ void displayEventHandler(Menu_Event_t event, void *param)
     case 1:
       instance->appGPS = new AppGPS(instance->display, instance->system, instance->network, "GPS Client");
       break;
+    case 4:
+      instance->appSettings = new AppSettings(instance->display, instance->system, instance->network, "Settings");
+      break;
     }
 
-    break;
-  }
-  case SET_AUDIO:
-  {
-    int volume = reinterpret_cast<int>(param);
-    instance->system->audio->setVolume(volume);
-    instance->display->update_volume_slider(volume);
-    preferences.begin("settings", false);
-    preferences.putInt("volume", volume);
-    preferences.end();
-    break;
-  }
-  case SCREEN_TIMEOUT:
-  {
-    int timeout = reinterpret_cast<int>(param);
-    preferences.begin("settings", false);
-    preferences.putInt("screen_timeout", timeout);
-    preferences.end();
-    instance->display->set_screen_timeout(timeout);
     break;
   }
   }
@@ -71,7 +44,8 @@ void networkResponse(Network_Event_t event, void *data1, void *data2)
   switch (event)
   {
   case NETWORK_SCANNING_ON:
-    instance->display->update_ui_network(data1, data2);
+    // TODO: switch to event based async
+    instance->appSettings->update_ui_network(data1, data2);
     break;
 
   case NETWORK_CONNECTED:
@@ -115,12 +89,11 @@ void ESP32Berry::begin()
   void (*sptr)(System_Event_t, void *) = &systemInfo;
   system = new System(systemInfo);
 
-  preferences.begin("settings", true);
-  int volume = preferences.getInt("volume", 21);
-  int screenTimeout = preferences.getInt("screen_timeout", 1);
-  preferences.end();
-  instance->system->audio->setVolume(volume);
-  instance->display->update_volume_slider(volume);
-  instance->display->set_screen_timeout(screenTimeout);
+  Globals::get().preferences.begin("settings", true);
+  int volume = Globals::get().preferences.getInt("volume", 21);
+  int screenTimeout = Globals::get().preferences.getInt("screen_timeout", 1);
+  Globals::get().preferences.end();
   instance->system->play_audio(AUDIO_BOOT);
+  GlobalEventBus.emit(Events::VOLUME_CHANGED, String(volume));
+  instance->display->set_screen_timeout(screenTimeout);
 }
