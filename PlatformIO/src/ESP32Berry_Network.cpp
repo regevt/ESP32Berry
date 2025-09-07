@@ -1,8 +1,8 @@
 #include "ESP32Berry_Network.hpp"
-#include <Preferences.h>
+#include "Utils/Globals.h"
+#include "Utils/EventManager/EventManager.h"
 
 static Network *instance = NULL;
-extern Preferences preferences;
 
 extern "C" void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {
@@ -30,11 +30,15 @@ Network::Network(FuncPtrVector callback)
   network_result_cb = callback;
   _networkEvent = NETWORK_DISCONNECTED;
   loadWiFiDetails(_ssid, _pwd);
-  if (_ssid.length() > 0 && _pwd.length() > 0)
+  if (wifiSate && _ssid.length() > 0 && _pwd.length() > 0)
   {
     xTaskCreate(ntBeginTask, "ntBeginTask", 4096, NULL, 1, &ntConnectTaskHandler);
   }
+
   WiFiEventOn();
+
+  GlobalEventBus.on(Events::SET_WIFI, [](int evt, void *param)
+                    { instance->WiFiCommend(static_cast<Network_Event_t>(evt), param); });
 }
 
 Network::~Network()
@@ -92,13 +96,29 @@ void Network::WiFiCommend(Network_Event_t networkEvent, void *param)
   switch (networkEvent)
   {
   case NETWORK_SCANNING_OFF:
+    Serial.println("Stopping WiFi Scan...");
     this->WiFiScanner(false);
     break;
   case NETWORK_SCANNING_ON:
+    Serial.println("Starting WiFi Scan...");
     this->WiFiScanner(true);
     break;
   case NETWORK_CONNECTING:
     this->WiFiConnector(param);
+    break;
+  case NETWORK_DISCONNECTED:
+    WiFi.disconnect();
+    Serial.println("WiFi Disconnected");
+    Globals::get().preferences.begin("settings", false);
+    Globals::get().preferences.putBool("wifi_state", false);
+    Globals::get().preferences.end();
+    break;
+  case NETWORK_CONNECTED:
+    WiFi.reconnect();
+    Serial.println("WiFi Reconnecting...");
+    Globals::get().preferences.begin("settings", false);
+    Globals::get().preferences.putBool("wifi_state", true);
+    Globals::get().preferences.end();
     break;
   }
 }
@@ -133,7 +153,7 @@ void Network::WiFiScannerStop()
 void Network::WiFiConnector(void *param)
 {
   this->WiFiScannerStop();
-  
+
   String networkInfo = String((char *)param);
   int seperatorIdx = networkInfo.indexOf(WIFI_SSID_PW_DELIMITER);
   _ssid = networkInfo.substring(0, seperatorIdx);
@@ -149,16 +169,25 @@ void Network::WiFiConnector(void *param)
 
 void Network::saveWiFiDetails(const char *ssid, const char *password)
 {
-  preferences.begin("wifi", false);
-  preferences.putString("ssid", ssid);
-  preferences.putString("password", password);
-  preferences.end();
+  Globals::get().preferences.begin("wifi", false);
+  Globals::get().preferences.putString("ssid", ssid);
+  Globals::get().preferences.putString("password", password);
+  Globals::get().preferences.end();
 }
 
 void Network::loadWiFiDetails(String &ssid, String &password)
 {
-  preferences.begin("wifi", true);
-  _ssid = preferences.getString("ssid", "");
-  _pwd = preferences.getString("password", "");
-  preferences.end();
+  Globals::get().preferences.begin("wifi", true);
+  _ssid = Globals::get().preferences.getString("ssid", "");
+  _pwd = Globals::get().preferences.getString("password", "");
+  Globals::get().preferences.end();
+
+  Globals::get().preferences.begin("settings", true);
+  wifiSate = Globals::get().preferences.getBool("wifi_state", true);
+  Globals::get().preferences.end();
+
+  Serial.println("Loaded WiFi Details:");
+  Serial.println("SSID: " + _ssid);
+  Serial.println("PWD: " + _pwd);
+  Serial.println("WiFi State: " + String(wifiSate ? "ON" : "OFF"));
 }

@@ -1,6 +1,8 @@
 #include "ESP32Berry_System.hpp"
 #include "Configurations/secrets.h"
 #include "Utils/BusLock.hpp"
+#include "Utils/Globals.h"
+#include "Utils/EventManager/EventManager.h"
 
 static System *instance = NULL;
 
@@ -41,6 +43,18 @@ void taskPlayAudio(void *pvParameters)
   vTaskDelete(NULL);
 }
 
+void System::setVolume(int volume)
+{
+  if (instance && instance->audio)
+  {
+    instance->audio->setVolume(volume);
+    Serial.printf("Volume set to %d\n", volume);
+    Globals::get().preferences.begin("settings", false);
+    Globals::get().preferences.putInt("volume", volume);
+    Globals::get().preferences.end();
+  }
+}
+
 System::System(FuncPtrString callback)
 {
   instance = this;
@@ -57,6 +71,8 @@ void System::init()
   initADCBAT();
   audio = new Audio();
   isSDCard = initSDCard();
+  GlobalEventBus.on(Events::VOLUME_CHANGED, [](String volume)
+                    { instance->setVolume(volume.toInt()); });
 }
 
 void System::initADCBAT()
@@ -232,10 +248,17 @@ void System::read_battery()
   {
     vBat = BAT_MAX_VOLT;
   }
-  int batPercent = map(vBat * 100, 320, 420, 0, 100);
+  const double minV = 3.20;
+  const double maxV = 4.20;
+  double pct = (vBat - minV) * 100.0 / (maxV - minV);
+  int batPercent = (int)(pct + (pct >= 0 ? 0.5 : -0.5));
   if (batPercent < 0)
   {
     batPercent = 0;
+  }
+  if (batPercent > 100)
+  {
+    batPercent = 100;
   }
 
   system_event_cb(SYS_BATTERY, &batPercent);

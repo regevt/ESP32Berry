@@ -1,0 +1,23 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		// {
+		// 	"label": "Build with PlatformIO",
+		// 	"type": "shell",
+		// 	"command": "platformio run --environment T-Deck",
+		// 	"problemMatcher": [
+		// 		"$platformio"
+		// 	],
+		// 	"group": "build"
+		// },
+		// {
+		// 	"label": "Rebuild after WDT fix",
+		// 	"type": "shell",
+		// 	"command": "platformio run --environment T-Deck",
+		// 	"problemMatcher": [
+		// 		"$platformio"
+		// 	],
+		// 	"group": "build"
+		// }
+	]
+}

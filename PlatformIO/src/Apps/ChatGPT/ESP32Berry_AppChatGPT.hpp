@@ -25,10 +25,11 @@ private:
 
 public:
   ChatGPT<WiFiClientSecure> *chat_gpt;
-  AppChatGPT(Display *display, System *system, Network *network, const char *title);
+  AppChatGPT(lv_obj_t *screen, const char *title);
   ~AppChatGPT();
   void add_msg(bool isMine, String msg);
   void tg_event_handler(lv_event_t *e);
   void clean_input_field();
   void close_app();
+  void textarea_event_cb(lv_event_t *e);
 };

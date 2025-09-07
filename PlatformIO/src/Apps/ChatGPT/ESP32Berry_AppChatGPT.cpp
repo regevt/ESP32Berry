@@ -7,14 +7,16 @@
 /////////////////////////////////////////////////////////////////
 #include "Apps/ChatGPT/ESP32Berry_AppChatGPT.hpp"
 #include <Configurations/secrets.h>
+#include <Utils/Globals.h>
+#include <Utils/EventManager/EventManager.h>
 
 static AppChatGPT *instance = NULL;
 
-AppChatGPT::AppChatGPT(Display *display, System *system, Network *network, const char *title)
-    : AppBase(display, system, network, title)
+AppChatGPT::AppChatGPT(lv_obj_t *screen, const char *title)
+    : AppBase(screen, title)
 {
   instance = this;
-  display_width = display->get_display_width();
+  display_width = Globals::get().screen_width;
   client.setInsecure();
   chat_gpt = new ChatGPT<WiFiClientSecure>(&client, "v1", OPENAI_API_KEY, 30000);
   this->draw_ui();
@@ -24,7 +26,7 @@ AppChatGPT::~AppChatGPT() {}
 
 extern "C" void tg_textarea_event_cb_thunk(lv_event_t *e)
 {
-  instance->_display->textarea_event_cb(e);
+  // instance->_display->textarea_event_cb(e);
 }
 
 extern "C" void tg_event_handler_thunk(lv_event_t *e)
@@ -50,10 +52,10 @@ void chatGPTtask(void *pvParameters)
     Serial.println("===ERROR===");
     Serial.println(result);
   }
-  instance->_display->lv_port_sem_take();
+  GlobalEventBus.emit(Events::PORT_SEM_TAKE, "");
   instance->add_msg(false, result);
   instance->show_loading_popup(false);
-  instance->_display->lv_port_sem_give();
+  GlobalEventBus.emit(Events::PORT_SEM_GIVE, "");
 
   vTaskDelete(NULL);
 }
@@ -98,8 +100,8 @@ void AppChatGPT::draw_ui()
   lv_obj_set_size(textField, display_width * 2 / 3 - 10, 38);
   lv_obj_align(textField, LV_ALIGN_LEFT_MID, 10, 0);
   lv_textarea_set_placeholder_text(textField, "typing?");
-  lv_obj_add_event_cb(textField, tg_textarea_event_cb_thunk, LV_EVENT_FOCUSED, NULL);
-  lv_obj_add_event_cb(textField, tg_textarea_event_cb_thunk, LV_EVENT_DEFOCUSED, NULL);
+  // lv_obj_add_event_cb(textField, tg_textarea_event_cb_thunk, LV_EVENT_FOCUSED, NULL);
+  // lv_obj_add_event_cb(textField, tg_textarea_event_cb_thunk, LV_EVENT_DEFOCUSED, NULL);
 
   sendBtn = lv_btn_create(bottomPart);
   lv_obj_set_size(sendBtn, display_width * 1 / 3 - 20, 38);
@@ -133,7 +135,7 @@ void AppChatGPT::clean_input_field()
 
 void AppChatGPT::close_app()
 {
-  _display->goback_main_screen();
+  GlobalEventBus.emit(Events::GO_BACK_MAIN_SCREEN, "");
   lv_obj_del(_bodyScreen);
   delete this;
 }

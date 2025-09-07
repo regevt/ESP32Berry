@@ -7,15 +7,17 @@
 #include <Arduino.h>
 #include "../Configurations/secrets.h"
 #include "../Utils/BusLock.hpp"
+#include "../Utils/Globals.h"
 #include <lvgl.h> // Ensure this is the correct path for your LVGL installation
+#include "../Utils/EventManager/EventManager.h"
 
 Display *g_display_instance = NULL;
 static Display *instance = NULL;
 extern "C" void my_mouse_read_thunk(lv_indev_t *indev_driver, lv_indev_data_t *data);
-extern "C" void wifi_event_cb_thunk(lv_event_t *e)
-{
-    instance->ui_wifi_event_callback(e);
-}
+// extern "C" void wifi_event_cb_thunk(lv_event_t *e)
+// {
+//     instance->ui_wifi_event_callback(e);
+// }
 extern "C" void textarea_event_cb_thunk(lv_event_t *e)
 {
     instance->textarea_event_cb(e);
@@ -29,6 +31,54 @@ extern "C" void ui_app_btns_callback_thunk(lv_event_t *e)
     instance->ui_app_btns_callback(e);
 }
 
+lv_obj_t *Display::focused_obj()
+{
+    return ui_Focused_Obj;
+}
+
+void Display::set_focused_obj(lv_obj_t *obj)
+{
+    ui_Focused_Obj = obj;
+}
+
+lv_obj_t *Display::ui_second_screen()
+{
+    return ui_Sub_Screen;
+}
+
+void Display::goback_main_screen()
+{
+    lv_scr_load_anim(ui_Main_Screen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0, false);
+}
+
+void Display::lv_port_sem_take(void)
+{
+    TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    if (lvgl_task_handle != task)
+    {
+        xSemaphoreTake(bin_sem, portMAX_DELAY);
+    }
+}
+
+void Display::lv_port_sem_give(void)
+{
+    TaskHandle_t task = xTaskGetCurrentTaskHandle();
+    if (lvgl_task_handle != task)
+    {
+        xSemaphoreGive(bin_sem);
+    }
+}
+
+int Display::get_display_width()
+{
+    return tft->width();
+}
+
+int Display::get_display_height()
+{
+    return tft->height();
+}
+
 Display::Display(FuncPtrInt callback)
 {
     instance = this;
@@ -39,6 +89,40 @@ Display::Display(FuncPtrInt callback)
     ui_Focused_Obj = NULL;
     initTFT();
     last_input_tick = xTaskGetTickCount();
+    GlobalEventBus.on(Events::BRIGHTNESS_CHANGED, [this](String data)
+                      {
+        int brightness = data.toInt();
+        if (brightness >= 0 && brightness <= 255)
+        {
+            this->set_screen_brightness(brightness);
+        } });
+
+    GlobalEventBus.on(Events::TOGGLE_CURSOR, [this](String data)
+                      {
+        if (data == "on")
+        {
+            Globals::get().cursor_panel_active = true;
+            lv_obj_clear_flag(this->cursor_obj, LV_OBJ_FLAG_HIDDEN);
+        }
+        else if (data == "off")
+        {
+            Globals::get().cursor_panel_active = false;
+            lv_obj_add_flag(this->cursor_obj, LV_OBJ_FLAG_HIDDEN);
+        } });
+
+    GlobalEventBus.on(Events::UI_ACTIVITY, [this](String data)
+                      { this->register_activity(); });
+
+    GlobalEventBus.on(Events::SCREEN_TIMEOUT_CHANGED, [this](String data)
+                      { this->set_screen_timeout(data.toInt()); });
+
+    GlobalEventBus.on(Events::PORT_SEM_TAKE, [this](String data)
+                      { this->lv_port_sem_take(); });
+    GlobalEventBus.on(Events::PORT_SEM_GIVE, [this](String data)
+                      { this->lv_port_sem_give(); });
+
+    GlobalEventBus.on(Events::GO_BACK_MAIN_SCREEN, [this](String data)
+                      { this->goback_main_screen(); });
 }
 
 Display::~Display()
@@ -117,7 +201,8 @@ void Display::my_mouse_read(lv_indev_t *indev_driver, lv_indev_data_t *data)
 {
     static int16_t last_x;
     static int16_t last_y;
-    if (cursor_panel_active == false)
+
+    if (Globals::get().cursor_panel_active == false)
     {
         // Keep last position, report released state when cursor panel is inactive
         data->point.x = last_x;
@@ -241,11 +326,15 @@ void Display::HandleKeyboardShortcuts(uint32_t key)
         }
         screen_dimmed = true;
     }
+    // TODO: fix
     if (key == 4) // shift + speaker  toggle sound
     {
-        int sliderValue = lv_slider_get_value(ui_SliderSpeaker);
-        int volume = sliderValue > 0 ? 0 : 21;
-        menu_event_cb(SET_AUDIO, reinterpret_cast<void *>(volume));
+        Globals::get().preferences.begin("settings", false);
+        int volume = Globals::get().preferences.getInt("volume", 21);
+        volume = volume > 0 ? 0 : 21;
+        Globals::get().preferences.putInt("volume", volume);
+        Globals::get().preferences.end();
+        GlobalEventBus.emit(Events::VOLUME_CHANGED, String(volume));
     }
 }
 
@@ -266,14 +355,26 @@ extern "C" void my_key_read_thunk(lv_indev_t *indev_driver, lv_indev_data_t *dat
 
 void update_ui_task(void *pvParameters)
 {
+    TickType_t last = xTaskGetTickCount();
+    const TickType_t tick_period = pdMS_TO_TICKS(5); // run roughly every 5ms
     while (1)
     {
-        xSemaphoreTake(instance->bin_sem, portMAX_DELAY);
-        lv_timer_handler();
-        xSemaphoreGive(instance->bin_sem);
-        // vTaskDelay(5);
-        lv_tick_inc(1);
-        vTaskDelay(pdMS_TO_TICKS(1));
+        // Calculate real elapsed time and feed LVGL
+        TickType_t now = xTaskGetTickCount();
+        uint32_t elapsed_ms = (now - last) * portTICK_PERIOD_MS;
+        if (elapsed_ms == 0)
+            elapsed_ms = 1;
+        last = now;
+
+        if (xSemaphoreTake(instance->bin_sem, pdMS_TO_TICKS(20)) == pdTRUE)
+        {
+            lv_tick_inc(elapsed_ms);
+            lv_timer_handler();
+            xSemaphoreGive(instance->bin_sem);
+        }
+
+        // Give other tasks and the IDLE task time to run to avoid WDT
+        vTaskDelay(tick_period);
     }
 }
 
@@ -341,7 +442,6 @@ void Display::initLVGL()
     bin_sem = xSemaphoreCreateMutex();
     ui_main();
     ui_second();
-    ui_settings();
     ui_prep_loading();
     // ui_prep_popup_box();
 
@@ -383,7 +483,18 @@ void Display::set_screen_timeout(int minutes)
     if (minutes < 0)
         minutes = 0;
     screen_timeout_minutes = minutes;
+    Serial.printf("Screen timeout set to %d minutes\n", screen_timeout_minutes);
+    Globals::get().preferences.begin("settings", false);
+    Globals::get().preferences.putInt("screen_timeout", screen_timeout_minutes);
+    Globals::get().preferences.end();
     register_activity();
+}
+void Display::set_screen_brightness(int value)
+{
+    tft->setBrightness(value);
+    Globals::get().preferences.begin("settings", false);
+    Globals::get().preferences.putInt("brightness", value);
+    Globals::get().preferences.end();
 }
 
 void Display::fade_backlight_to(uint8_t target, uint8_t step, uint16_t delay_ms)

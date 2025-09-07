@@ -7,6 +7,8 @@
 /////////////////////////////////////////////////////////////////
 #include "Apps/GPS/ESP32Berry_AppGPS.hpp"
 #include <HTTPClient.h>
+#include <Utils/Globals.h>
+#include <Utils/EventManager/EventManager.h>
 
 static TaskHandle_t gpsTaskHandler = NULL;
 
@@ -31,14 +33,16 @@ void GPStask(void *pvParameters)
         unsigned long now = millis();
         bool time_due = (now - last_ui_update) >= 10000UL; // 10 seconds
 
-        if (changed) {
+        if (changed)
+        {
           // Always keep internal state up-to-date
           latitude = gps.location.lat();
           longitude = gps.location.lng();
           satellites = gps.satellites.value();
         }
 
-        if (time_due) {
+        if (time_due)
+        {
           String address = instance->get_current_address(); // default to last known
           // Only reverse geocode when we have a new position (avoid spamming)
           if (changed && WiFi.status() == WL_CONNECTED && gps.location.isValid() && latitude != 0.0 && longitude != 0.0)
@@ -67,10 +71,10 @@ void GPStask(void *pvParameters)
           }
 
           // Update UI under LVGL lock. Create UI once and only set labels.
-          instance->_display->lv_port_sem_take();
+          GlobalEventBus.emit(Events::PORT_SEM_TAKE, "");
           instance->ensure_ui_created();
           instance->update_ui(latitude, longitude, satellites, address);
-          instance->_display->lv_port_sem_give();
+          GlobalEventBus.emit(Events::PORT_SEM_GIVE, "");
           last_ui_update = now;
         }
       }
@@ -95,7 +99,8 @@ void AppGPS::draw_ui()
 
 void AppGPS::ensure_ui_created()
 {
-  if (grid_layout != nullptr) return;
+  if (grid_layout != nullptr)
+    return;
   static lv_coord_t row_declaration[] = {20, 20, 20, 40, LV_GRID_TEMPLATE_LAST};
   static lv_coord_t column_declaration[] = {88, 220, LV_GRID_TEMPLATE_LAST};
   grid_layout = lv_obj_create(ui_AppPanel);
@@ -156,28 +161,33 @@ void AppGPS::update_ui(double lat, double lon, uint32_t sats, const String &addr
   snprintf(lat_buf, sizeof(lat_buf), "%s", (lat != 0.0) ? String(lat, 6).c_str() : "N/A");
   snprintf(lon_buf, sizeof(lon_buf), "%s", (lon != 0.0) ? String(lon, 6).c_str() : "N/A");
   snprintf(sat_buf, sizeof(sat_buf), "%s", (sats > 0) ? String(sats).c_str() : "N/A");
-  if (latitude_value) lv_label_set_text(latitude_value, lat_buf);
-  if (longitude_value) lv_label_set_text(longitude_value, lon_buf);
-  if (satellites_value) lv_label_set_text(satellites_value, sat_buf);
+  if (latitude_value)
+    lv_label_set_text(latitude_value, lat_buf);
+  if (longitude_value)
+    lv_label_set_text(longitude_value, lon_buf);
+  if (satellites_value)
+    lv_label_set_text(satellites_value, sat_buf);
   current_address = address.length() ? address : current_address;
-  if (address_value) lv_label_set_text(address_value, current_address.c_str());
+  if (address_value)
+    lv_label_set_text(address_value, current_address.c_str());
   // Ensure marquee stays active if created earlier
-  if (address_value) {
+  if (address_value)
+  {
     lv_obj_set_width(address_value, 220);
     lv_label_set_long_mode(address_value, LV_LABEL_LONG_SCROLL_CIRCULAR);
   }
 }
 
-AppGPS::AppGPS(Display *display, System *system, Network *network, const char *title)
-    : AppBase(display, system, network, title)
+AppGPS::AppGPS(lv_obj_t *screen, const char *title)
+    : AppBase(screen, title)
 {
   instance = this;
-  display_width = display->get_display_width();
+  display_width = Globals::get().screen_width;
   SerialGPS.begin(GPSBaud, SERIAL_8N1, BOARD_GPS_RX_PIN, BOARD_GPS_TX_PIN);
-  instance->_display->lv_port_sem_take();
+  GlobalEventBus.emit(Events::PORT_SEM_TAKE, "");
   ensure_ui_created();
   update_ui(latitude, longitude, satellites, current_address);
-  instance->_display->lv_port_sem_give();
+  GlobalEventBus.emit(Events::PORT_SEM_GIVE, "");
   xTaskCreate(GPStask, "gpsTask", 10000, NULL, 1, &gpsTaskHandler);
 }
 
@@ -185,7 +195,7 @@ AppGPS::~AppGPS() {}
 
 void AppGPS::close_app()
 {
-  _display->goback_main_screen();
+  GlobalEventBus.emit(Events::GO_BACK_MAIN_SCREEN, "");
   lv_obj_del(_bodyScreen);
   if (gpsTaskHandler != NULL)
   {
