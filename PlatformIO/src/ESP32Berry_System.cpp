@@ -158,7 +158,10 @@ void System::play_audio(const char *filename)
 {
   if (!isSDCard)
     return;
-  xTaskCreate(taskPlayAudio, "play", 1024 * 6, (void *)filename, 2, &audioTaskHandler);
+  // Pin audio playback to core 1 to avoid contention with WiFi (usually on core 0)
+  // Adjust coreId if your setup differs.
+  const BaseType_t coreId = 1;
+  xTaskCreatePinnedToCore(taskPlayAudio, "play", 1024 * 6, (void *)filename, 2, &audioTaskHandler, coreId);
 }
 
 std::vector<File> System::listDir(const char *dirname)

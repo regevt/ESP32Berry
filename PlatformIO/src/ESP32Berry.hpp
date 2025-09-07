@@ -9,6 +9,7 @@
 #include "Apps/FileBrowser/ESP32Berry_AppFileBrowser.hpp"
 #include "Apps/GPS/ESP32Berry_AppGPS.hpp"
 #include "Apps/Settings/ESP32Berry_AppSettings.hpp"
+#include "Apps/Mp3/ESP32Berry_AppMp3.hpp"
 
 class ESP32Berry
 {
@@ -20,6 +21,7 @@ public:
   AppChatGPT *appChatGPT;
   AppFileBrowser *appFileBrowser;
   AppGPS *appGPS;
+  AppMp3 *appMp3;
   AppSettings *appSettings;
 
   ESP32Berry();
